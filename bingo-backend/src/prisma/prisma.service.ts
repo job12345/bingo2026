@@ -32,7 +32,7 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
    * ใช้สำหรับลบข้อมูลแบบ Soft Delete (ถ้ามี)
    */
   async softDelete(model: string, id: string) {
-    return this[model].update({
+    return (this as any)[model].update({
       where: { id },
       data: { deletedAt: new Date() },
     });

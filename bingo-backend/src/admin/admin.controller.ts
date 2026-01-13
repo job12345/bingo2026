@@ -1,5 +1,6 @@
 import { Controller, UseGuards, Get, Put, Post, Body, Req } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
+import { Request } from 'express';
 import { AdminService } from './admin.service';
 import { Roles } from '../common/decorators/roles.decorator';
 import { RolesGuard } from '../common/guards/roles.guard';
@@ -28,10 +29,10 @@ export class AdminController {
   @Put('settings/telegram')
   @ApiOperation({ summary: 'อัปเดตการตั้งค่า Telegram' })
   async updateTelegramSettings(
-    @Req() req,
+    @Req() req: Request,
     @Body() dto: UpdateTelegramSettingsDto,
   ) {
-    const adminId = req.user.id; // ดึง Admin ID จาก JWT
+    const adminId = (req as any).user.id; // ดึง Admin ID จาก JWT
     return this.adminService.updateTelegramSettings(adminId, dto);
   }
 

@@ -94,7 +94,7 @@ export class AdminService {
    * ทดสอบส่งข้อความ Telegram
    */
   async testTelegramNotification(chatId?: string) {
-    const sent = await this.telegramService.testSendMessage(chatId || null);
+    const sent = await this.telegramService.testSendMessage(chatId || '');
 
     if (sent) {
       return {

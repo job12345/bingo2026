@@ -157,7 +157,7 @@ export class WalletService {
     }
 
     // ตรวจสอบยอดเงินพอหรือไม่
-    if (user.pointBalance < dto.amount) {
+    if (Number(user.pointBalance) < dto.amount) {
       throw new BadRequestException('ยอดเงินไม่เพียงพอ');
     }
 
