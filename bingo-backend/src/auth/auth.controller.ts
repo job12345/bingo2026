@@ -6,11 +6,35 @@ import { AuthService } from './auth.service';
 import { Public } from '../common/decorators/public.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
+import { RegisterDto } from './dto/register.dto';
+import { LoginDto } from './dto/login.dto';
 
 @ApiTags('auth')
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
+
+  /**
+   * Register with Phone & Password
+   * สมัครสมาชิกด้วยเบอร์โทรศัพท์และรหัสผ่าน
+   */
+  @Public()
+  @Post('register')
+  @ApiOperation({ summary: 'สมัครสมาชิก (เบอร์โทร + รหัสผ่าน)' })
+  async register(@Body() dto: RegisterDto) {
+    return this.authService.register(dto);
+  }
+
+  /**
+   * Login with Phone & Password
+   * เข้าสู่ระบบด้วยเบอร์โทรศัพท์และรหัสผ่าน
+   */
+  @Public()
+  @Post('login')
+  @ApiOperation({ summary: 'เข้าสู่ระบบ (เบอร์โทร + รหัสผ่าน)' })
+  async login(@Body() dto: LoginDto) {
+    return this.authService.login(dto);
+  }
 
   /**
    * Google OAuth Login

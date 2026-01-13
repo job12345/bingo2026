@@ -1,8 +1,11 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable, UnauthorizedException, BadRequestException, ConflictException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
 import { UsersService } from '../users/users.service';
+import * as bcrypt from 'bcrypt';
+import { RegisterDto } from './dto/register.dto';
+import { LoginDto } from './dto/login.dto';
 
 @Injectable()
 export class AuthService {
@@ -12,6 +15,107 @@ export class AuthService {
     private readonly configService: ConfigService,
     private readonly usersService: UsersService,
   ) {}
+
+  /**
+   * Register with Phone & Password
+   * สมัครสมาชิกด้วยเบอร์โทรศัพท์และรหัสผ่าน
+   */
+  async register(dto: RegisterDto) {
+    // ตรวจสอบว่ารหัสผ่านตรงกันหรือไม่
+    if (dto.password !== dto.confirmPassword) {
+      throw new BadRequestException('รหัสผ่านไม่ตรงกัน');
+    }
+
+    // ตรวจสอบว่าเบอร์โทรซ้ำหรือไม่
+    const existingUser = await this.prisma.user.findUnique({
+      where: { phoneNumber: dto.phoneNumber },
+    });
+
+    if (existingUser) {
+      throw new ConflictException('เบอร์โทรศัพท์นี้ถูกใช้งานแล้ว');
+    }
+
+    // Hash รหัสผ่าน
+    const hashedPassword = await this.hashPassword(dto.password);
+
+    // สร้าง User ใหม่
+    const user = await this.prisma.user.create({
+      data: {
+        phoneNumber: dto.phoneNumber,
+        password: hashedPassword,
+        displayName: dto.displayName,
+        role: 'player',
+        lastLoginAt: new Date(),
+      },
+    });
+
+    // สร้าง JWT Tokens
+    const accessToken = this.generateAccessToken(user);
+    const refreshToken = this.generateRefreshToken(user);
+
+    // บันทึก Refresh Token
+    await this.saveRefreshToken(user.id, refreshToken);
+
+    return {
+      accessToken,
+      refreshToken,
+      user: {
+        id: user.id,
+        phoneNumber: user.phoneNumber,
+        displayName: user.displayName,
+        role: user.role,
+        pointBalance: user.pointBalance,
+      },
+    };
+  }
+
+  /**
+   * Login with Phone & Password
+   * เข้าสู่ระบบด้วยเบอร์โทรศัพท์และรหัสผ่าน
+   */
+  async login(dto: LoginDto) {
+    // ค้นหา User จากเบอร์โทร
+    const user = await this.prisma.user.findUnique({
+      where: { phoneNumber: dto.phoneNumber },
+    });
+
+    if (!user || !user.password) {
+      throw new UnauthorizedException('เบอร์โทรศัพท์หรือรหัสผ่านไม่ถูกต้อง');
+    }
+
+    // ตรวจสอบรหัสผ่าน
+    const isPasswordValid = await this.comparePassword(dto.password, user.password);
+
+    if (!isPasswordValid) {
+      throw new UnauthorizedException('เบอร์โทรศัพท์หรือรหัสผ่านไม่ถูกต้อง');
+    }
+
+    // อัปเดต Last Login
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: { lastLoginAt: new Date() },
+    });
+
+    // สร้าง JWT Tokens
+    const accessToken = this.generateAccessToken(user);
+    const refreshToken = this.generateRefreshToken(user);
+
+    // บันทึก Refresh Token
+    await this.saveRefreshToken(user.id, refreshToken);
+
+    return {
+      accessToken,
+      refreshToken,
+      user: {
+        id: user.id,
+        phoneNumber: user.phoneNumber,
+        displayName: user.displayName,
+        avatarUrl: user.avatarUrl,
+        role: user.role,
+        pointBalance: user.pointBalance,
+      },
+    };
+  }
 
   /**
    * Google OAuth Login
@@ -166,5 +270,20 @@ export class AuthService {
         expiresAt,
       },
     });
+  }
+
+  /**
+   * Hash Password
+   */
+  private async hashPassword(password: string): Promise<string> {
+    const saltRounds = 10;
+    return bcrypt.hash(password, saltRounds);
+  }
+
+  /**
+   * Compare Password
+   */
+  private async comparePassword(password: string, hashedPassword: string): Promise<boolean> {
+    return bcrypt.compare(password, hashedPassword);
   }
 }
