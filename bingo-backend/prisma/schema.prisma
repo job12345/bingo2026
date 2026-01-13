@@ -73,8 +73,13 @@ enum BallSet {
 
 model User {
   id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  googleId    String   @unique @map("google_id")
-  email       String   @unique
+
+  // Authentication Methods
+  phoneNumber String?  @unique @map("phone_number") @db.VarChar(15)
+  password    String?
+  googleId    String?  @unique @map("google_id")
+  email       String?  @unique
+
   displayName String   @map("display_name")
   avatarUrl   String?  @map("avatar_url")
   role        UserRole @default(player)
@@ -118,6 +123,7 @@ model User {
   auditLogs           AuditLog[]
   updatedSettings     SystemSetting[]
 
+  @@index([phoneNumber])
   @@index([googleId])
   @@index([email])
   @@index([role])
