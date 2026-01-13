@@ -6,7 +6,36 @@ import { User, LoginResponse } from '@/types';
  */
 export class AuthService {
   /**
-   * เริ่ม Google OAuth Login
+   * Login with Phone & Password
+   */
+  static async login(phoneNumber: string, password: string): Promise<void> {
+    const response = await apiClient.post<LoginResponse>('/auth/login', {
+      phoneNumber,
+      password,
+    });
+    this.saveTokens(response.accessToken, response.refreshToken);
+  }
+
+  /**
+   * Register with Phone & Password
+   */
+  static async register(
+    phoneNumber: string,
+    password: string,
+    confirmPassword: string,
+    displayName: string
+  ): Promise<void> {
+    const response = await apiClient.post<LoginResponse>('/auth/register', {
+      phoneNumber,
+      password,
+      confirmPassword,
+      displayName,
+    });
+    this.saveTokens(response.accessToken, response.refreshToken);
+  }
+
+  /**
+   * เริ่ม Google OAuth Login (Optional - สำหรับอนาคต)
    */
   static loginWithGoogle() {
     const apiUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8001';
