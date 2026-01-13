@@ -276,7 +276,7 @@ model Card {
   id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   gameId          String   @map("game_id") @db.Uuid
   userId          String   @map("user_id") @db.Uuid
-  numbers         Int[][]
+  numbers         Json
   cardHash        String   @unique @map("card_hash")
   markedPositions Json     @default("[]") @map("marked_positions")
   isWinner        Boolean  @default(false) @map("is_winner")
