@@ -1,0 +1,156 @@
+# =============================================================================
+# 🎯 Bingo Party Enterprise - Monitoring Stack (Grafana + Prometheus)
+# =============================================================================
+# โดย: เม (DevOps Engineer)
+# วันที่: 12 มกราคม 2026
+# =============================================================================
+
+version: '3.8'
+
+services:
+  # ===========================================================================
+  # Prometheus (Metrics Collection)
+  # ===========================================================================
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: bingo-prometheus
+    restart: unless-stopped
+
+    ports:
+      - "9090:9090"
+
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+
+    networks:
+      - monitoring
+
+  # ===========================================================================
+  # Grafana (Dashboard & Visualization)
+  # ===========================================================================
+  grafana:
+    image: grafana/grafana:latest
+    container_name: bingo-grafana
+    restart: unless-stopped
+
+    ports:
+      - "3001:3000"
+
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin123
+      - GF_INSTALL_PLUGINS=redis-datasource
+
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning
+
+    networks:
+      - monitoring
+
+    depends_on:
+      - prometheus
+
+  # ===========================================================================
+  # Node Exporter (Server Metrics)
+  # ===========================================================================
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: bingo-node-exporter
+    restart: unless-stopped
+
+    ports:
+      - "9100:9100"
+
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+
+    networks:
+      - monitoring
+
+  # ===========================================================================
+  # Loki (Log Aggregation)
+  # ===========================================================================
+  loki:
+    image: grafana/loki:latest
+    container_name: bingo-loki
+    restart: unless-stopped
+
+    ports:
+      - "3100:3100"
+
+    volumes:
+      - ./loki/loki-config.yml:/etc/loki/local-config.yaml
+      - loki_data:/loki
+
+    command: -config.file=/etc/loki/local-config.yaml
+
+    networks:
+      - monitoring
+
+  # ===========================================================================
+  # Promtail (Log Shipper)
+  # ===========================================================================
+  promtail:
+    image: grafana/promtail:latest
+    container_name: bingo-promtail
+    restart: unless-stopped
+
+    volumes:
+      - /var/log:/var/log
+      - ./promtail/promtail-config.yml:/etc/promtail/config.yml
+
+    command: -config.file=/etc/promtail/config.yml
+
+    networks:
+      - monitoring
+
+    depends_on:
+      - loki
+
+# =============================================================================
+# Volumes
+# =============================================================================
+volumes:
+  prometheus_data:
+  grafana_data:
+  loki_data:
+
+# =============================================================================
+# Networks
+# =============================================================================
+networks:
+  monitoring:
+    driver: bridge
+
+# =============================================================================
+# คำสั่งการใช้งาน
+# =============================================================================
+#
+# 1. เริ่มต้น Monitoring Stack:
+#    docker-compose -f docker-compose.monitoring.yml up -d
+#
+# 2. เข้า Grafana:
+#    http://localhost:3001 (admin / admin123)
+#
+# 3. เข้า Prometheus:
+#    http://localhost:9090
+#
+# 4. หยุด Monitoring Stack:
+#    docker-compose -f docker-compose.monitoring.yml down
+#
+# =============================================================================

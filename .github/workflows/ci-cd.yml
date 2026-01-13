@@ -1,0 +1,509 @@
+# =============================================================================
+# 🎯 Bingo Party Enterprise - CI/CD Pipeline
+# =============================================================================
+# โดย: เม (DevOps Engineer)
+# วันที่: 12 มกราคม 2026
+# GitHub Actions: Automated Testing & Deployment
+# =============================================================================
+
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+      - staging
+  pull_request:
+    branches:
+      - main
+      - develop
+
+env:
+  NODE_VERSION: '20.x'
+  POSTGRES_VERSION: '16'
+  REDIS_VERSION: '7'
+
+# =============================================================================
+# Jobs
+# =============================================================================
+jobs:
+  # ===========================================================================
+  # 1. Linting & Code Quality
+  # ===========================================================================
+  lint:
+    name: Lint & Code Quality
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: 'bingo-backend/package-lock.json'
+
+      - name: Install Backend Dependencies
+        working-directory: ./bingo-backend
+        run: npm ci
+
+      - name: Run ESLint
+        working-directory: ./bingo-backend
+        run: npm run lint
+
+      - name: Run Prettier Check
+        working-directory: ./bingo-backend
+        run: npm run format:check
+
+      - name: TypeScript Type Check
+        working-directory: ./bingo-backend
+        run: npm run type-check
+
+  # ===========================================================================
+  # 2. Backend Unit Tests
+  # ===========================================================================
+  test-backend:
+    name: Backend Tests
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: bingo_party_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: 'bingo-backend/package-lock.json'
+
+      - name: Install Dependencies
+        working-directory: ./bingo-backend
+        run: npm ci
+
+      - name: Run Database Migrations
+        working-directory: ./bingo-backend
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/bingo_party_test
+        run: npx prisma migrate deploy
+
+      - name: Run Unit Tests
+        working-directory: ./bingo-backend
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/bingo_party_test
+          REDIS_URL: redis://localhost:6379
+          JWT_SECRET: test-jwt-secret
+          REFRESH_TOKEN_SECRET: test-refresh-token-secret
+        run: npm run test
+
+      - name: Run Test Coverage
+        working-directory: ./bingo-backend
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/bingo_party_test
+          REDIS_URL: redis://localhost:6379
+          JWT_SECRET: test-jwt-secret
+        run: npm run test:cov
+
+      - name: Upload Coverage Reports
+        uses: codecov/codecov-action@v3
+        with:
+          files: ./bingo-backend/coverage/lcov.info
+          flags: backend
+          name: backend-coverage
+
+  # ===========================================================================
+  # 3. Frontend Tests
+  # ===========================================================================
+  test-frontend:
+    name: Frontend Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: 'bingo-frontend/package-lock.json'
+
+      - name: Install Dependencies
+        working-directory: ./bingo-frontend
+        run: npm ci
+
+      - name: Run Frontend Linter
+        working-directory: ./bingo-frontend
+        run: npm run lint
+
+      - name: Run Frontend Tests
+        working-directory: ./bingo-frontend
+        run: npm run test
+
+      - name: Build Frontend
+        working-directory: ./bingo-frontend
+        run: npm run build
+
+  # ===========================================================================
+  # 4. E2E Tests (Optional)
+  # ===========================================================================
+  test-e2e:
+    name: E2E Tests
+    runs-on: ubuntu-latest
+    needs: [test-backend, test-frontend]
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: bingo_party_e2e
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install Backend Dependencies
+        working-directory: ./bingo-backend
+        run: npm ci
+
+      - name: Run Database Migrations
+        working-directory: ./bingo-backend
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/bingo_party_e2e
+        run: npx prisma migrate deploy
+
+      - name: Start Backend Server
+        working-directory: ./bingo-backend
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/bingo_party_e2e
+          REDIS_URL: redis://localhost:6379
+          JWT_SECRET: test-jwt-secret
+          API_PORT: 8001
+        run: npm run start:dev &
+
+      - name: Wait for Backend
+        run: npx wait-on http://localhost:8001/health --timeout 60000
+
+      - name: Run E2E Tests
+        working-directory: ./bingo-backend
+        run: npm run test:e2e
+
+  # ===========================================================================
+  # 5. Security Audit
+  # ===========================================================================
+  security-audit:
+    name: Security Audit
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Run npm audit (Backend)
+        working-directory: ./bingo-backend
+        run: npm audit --audit-level=high
+
+      - name: Run npm audit (Frontend)
+        working-directory: ./bingo-frontend
+        run: npm audit --audit-level=high
+
+      - name: Run Snyk Security Scan
+        uses: snyk/actions/node@master
+        continue-on-error: true
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          args: --severity-threshold=high
+
+  # ===========================================================================
+  # 6. Build Docker Images (Production)
+  # ===========================================================================
+  build-docker:
+    name: Build Docker Images
+    runs-on: ubuntu-latest
+    needs: [lint, test-backend, test-frontend]
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/staging'
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Build and Push Backend Image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./bingo-backend
+          push: true
+          tags: |
+            ${{ secrets.DOCKER_USERNAME }}/bingo-backend:latest
+            ${{ secrets.DOCKER_USERNAME }}/bingo-backend:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build and Push Frontend Image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./bingo-frontend
+          push: true
+          tags: |
+            ${{ secrets.DOCKER_USERNAME }}/bingo-frontend:latest
+            ${{ secrets.DOCKER_USERNAME }}/bingo-frontend:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ===========================================================================
+  # 7. Deploy to Staging
+  # ===========================================================================
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: [build-docker]
+    if: github.ref == 'refs/heads/staging'
+    environment:
+      name: staging
+      url: https://staging.bingoparty.com
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Deploy to Staging Server
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.STAGING_HOST }}
+          username: ${{ secrets.STAGING_USER }}
+          key: ${{ secrets.STAGING_SSH_KEY }}
+          script: |
+            cd /opt/bingo-party
+            docker-compose pull
+            docker-compose up -d
+            docker system prune -f
+
+      - name: Run Database Migrations
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.STAGING_HOST }}
+          username: ${{ secrets.STAGING_USER }}
+          key: ${{ secrets.STAGING_SSH_KEY }}
+          script: |
+            cd /opt/bingo-party/bingo-backend
+            npx prisma migrate deploy
+
+      - name: Health Check
+        run: |
+          sleep 10
+          curl -f ${{ secrets.STAGING_URL }}/health || exit 1
+
+      - name: Notify Slack (Success)
+        if: success()
+        uses: slackapi/slack-github-action@v1
+        with:
+          payload: |
+            {
+              "text": "✅ Staging Deployment Successful",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "✅ *Bingo Party - Staging Deployed*\n• Branch: `${{ github.ref_name }}`\n• Commit: `${{ github.sha }}`\n• URL: https://staging.bingoparty.com"
+                  }
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
+
+  # ===========================================================================
+  # 8. Deploy to Production (Manual Approval Required)
+  # ===========================================================================
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: [build-docker]
+    if: github.ref == 'refs/heads/main'
+    environment:
+      name: production
+      url: https://bingoparty.com
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Create Backup
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.PROD_HOST }}
+          username: ${{ secrets.PROD_USER }}
+          key: ${{ secrets.PROD_SSH_KEY }}
+          script: |
+            cd /opt/bingo-party
+            ./scripts/backup.sh
+
+      - name: Deploy to Production Server
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.PROD_HOST }}
+          username: ${{ secrets.PROD_USER }}
+          key: ${{ secrets.PROD_SSH_KEY }}
+          script: |
+            cd /opt/bingo-party
+            docker-compose pull
+            docker-compose up -d --no-deps backend frontend
+            docker system prune -f
+
+      - name: Run Database Migrations
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.PROD_HOST }}
+          username: ${{ secrets.PROD_USER }}
+          key: ${{ secrets.PROD_SSH_KEY }}
+          script: |
+            cd /opt/bingo-party/bingo-backend
+            npx prisma migrate deploy
+
+      - name: Health Check
+        run: |
+          sleep 15
+          curl -f https://bingoparty.com/health || exit 1
+
+      - name: Notify Slack (Success)
+        if: success()
+        uses: slackapi/slack-github-action@v1
+        with:
+          payload: |
+            {
+              "text": "🚀 Production Deployment Successful",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "🚀 *Bingo Party - Production Deployed*\n• Branch: `main`\n• Commit: `${{ github.sha }}`\n• URL: https://bingoparty.com"
+                  }
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
+
+      - name: Rollback on Failure
+        if: failure()
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.PROD_HOST }}
+          username: ${{ secrets.PROD_USER }}
+          key: ${{ secrets.PROD_SSH_KEY }}
+          script: |
+            cd /opt/bingo-party
+            ./scripts/rollback.sh
+
+      - name: Notify Slack (Failure)
+        if: failure()
+        uses: slackapi/slack-github-action@v1
+        with:
+          payload: |
+            {
+              "text": "❌ Production Deployment Failed - Rolled Back",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "❌ *Bingo Party - Production Deployment Failed*\n• Branch: `main`\n• Commit: `${{ github.sha }}`\n• Action: Rolled back to previous version"
+                  }
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
+
+# =============================================================================
+# GitHub Secrets Required
+# =============================================================================
+#
+# Repository Secrets (Settings → Secrets and variables → Actions):
+#
+# 1. Docker Hub:
+#    - DOCKER_USERNAME
+#    - DOCKER_PASSWORD
+#
+# 2. Staging Server:
+#    - STAGING_HOST (IP or Domain)
+#    - STAGING_USER (SSH Username)
+#    - STAGING_SSH_KEY (Private SSH Key)
+#    - STAGING_URL (https://staging.bingoparty.com)
+#
+# 3. Production Server:
+#    - PROD_HOST
+#    - PROD_USER
+#    - PROD_SSH_KEY
+#
+# 4. Notifications:
+#    - SLACK_WEBHOOK (Slack Webhook URL)
+#
+# 5. Security:
+#    - SNYK_TOKEN (Snyk API Token)
+#
+# =============================================================================

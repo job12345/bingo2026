@@ -1,0 +1,40 @@
+# =============================================================================
+# Grafana Data Sources Configuration
+# =============================================================================
+
+apiVersion: 1
+
+datasources:
+  # ======================================
+  # Prometheus Data Source
+  # ======================================
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+    editable: true
+
+  # ======================================
+  # Loki Data Source (Logs)
+  # ======================================
+  - name: Loki
+    type: loki
+    access: proxy
+    url: http://loki:3100
+    editable: true
+
+  # ======================================
+  # PostgreSQL Data Source
+  # ======================================
+  - name: PostgreSQL
+    type: postgres
+    url: postgres:5432
+    database: bingo_party
+    user: postgres
+    secureJsonData:
+      password: postgres_password
+    jsonData:
+      sslmode: disable
+      postgresVersion: 1600
+    editable: true

@@ -1,0 +1,79 @@
+# =============================================================================
+# Prometheus Configuration
+# =============================================================================
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: 'bingo-party'
+    environment: 'production'
+
+# Alertmanager Configuration
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: []
+
+# Rules
+rule_files:
+  # - "alert_rules.yml"
+
+# Scrape Configurations
+scrape_configs:
+  # ======================================
+  # 1. Prometheus Self-Monitoring
+  # ======================================
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # ======================================
+  # 2. Node Exporter (Server Metrics)
+  # ======================================
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets: ['node-exporter:9100']
+        labels:
+          instance: 'bingo-server'
+
+  # ======================================
+  # 3. Backend API Metrics
+  # ======================================
+  - job_name: 'bingo-backend'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['host.docker.internal:8001']
+        labels:
+          app: 'backend'
+          environment: 'production'
+
+  # ======================================
+  # 4. PostgreSQL Exporter
+  # ======================================
+  - job_name: 'postgres'
+    static_configs:
+      - targets: ['postgres-exporter:9187']
+        labels:
+          database: 'bingo_party'
+
+  # ======================================
+  # 5. Redis Exporter
+  # ======================================
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['redis-exporter:9121']
+        labels:
+          cache: 'redis'
+
+# =============================================================================
+# Metrics ที่ Collect:
+# - CPU Usage
+# - Memory Usage
+# - Disk I/O
+# - Network Traffic
+# - HTTP Request Rate
+# - WebSocket Connections
+# - Database Queries
+# - Redis Operations
+# =============================================================================
