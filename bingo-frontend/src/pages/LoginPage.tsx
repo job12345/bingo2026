@@ -226,10 +226,66 @@ export default function LoginPage() {
         justifyContent: 'center',
         alignItems: 'center',
         minHeight: '100vh',
-        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%)',
         padding: '20px',
+        position: 'relative',
+        overflow: 'hidden',
       }}
     >
+      {/* Decorative Background */}
+      <div
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundImage: `
+            radial-gradient(circle at 20% 30%, rgba(255,255,255,0.1) 0%, transparent 50%),
+            radial-gradient(circle at 80% 70%, rgba(255,255,255,0.1) 0%, transparent 50%)
+          `,
+          pointerEvents: 'none',
+        }}
+      />
+
+      {/* Floating Bingo Elements */}
+      <div
+        style={{
+          position: 'absolute',
+          top: '15%',
+          left: '10%',
+          fontSize: '60px',
+          opacity: 0.1,
+          animation: 'float 6s ease-in-out infinite',
+        }}
+      >
+        🎯
+      </div>
+      <div
+        style={{
+          position: 'absolute',
+          top: '70%',
+          right: '15%',
+          fontSize: '50px',
+          opacity: 0.1,
+          animation: 'float 7s ease-in-out infinite 1s',
+        }}
+      >
+        🎰
+      </div>
+
+      <style>{`
+        @keyframes float {
+          0%, 100% {
+            transform: translateY(0px);
+          }
+          50% {
+            transform: translateY(-20px);
+          }
+        }
+      `}</style>
+
+      <div style={{ position: 'relative', zIndex: 1, width: '100%', maxWidth: '450px' }}>
       <Card
         style={{
           width: 450,
@@ -270,6 +326,7 @@ export default function LoginPage() {
           </Paragraph>
         </Space>
       </Card>
+      </div>
     </div>
   );
 }

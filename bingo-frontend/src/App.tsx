@@ -1,5 +1,6 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
+import LandingPage from '@/pages/LandingPage';
 import LoginPage from '@/pages/LoginPage';
 
 // Placeholder Pages (จะสร้างจริงทีหลัง)
@@ -15,6 +16,7 @@ function App() {
     <>
       <Routes>
         {/* Public Routes */}
+        <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<LoginPage />} />
 
         {/* Private Routes (ต้อง Login) */}
@@ -25,9 +27,6 @@ function App() {
 
         {/* Admin Routes */}
         <Route path="/admin/*" element={<AdminPage />} />
-
-        {/* Redirect */}
-        <Route path="/" element={<Navigate to="/login" replace />} />
 
         {/* 404 */}
         <Route path="*" element={<NotFoundPage />} />
