@@ -1,8 +1,8 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
+import LoginPage from '@/pages/LoginPage';
 
 // Placeholder Pages (จะสร้างจริงทีหลัง)
-const LoginPage = () => <div style={{ padding: '2rem' }}><h1>Login Page</h1><p>Google OAuth Login จะใช้งานได้เมื่อ Backend พร้อม</p></div>;
 const LobbyPage = () => <div style={{ padding: '2rem' }}><h1>Lobby Page</h1><p>รายการห้องบิงโก</p></div>;
 const GameRoomPage = () => <div style={{ padding: '2rem' }}><h1>Game Room Page</h1><p>ห้องเกม</p></div>;
 const WalletPage = () => <div style={{ padding: '2rem' }}><h1>Wallet Page</h1><p>กระเป๋าเงิน</p></div>;
