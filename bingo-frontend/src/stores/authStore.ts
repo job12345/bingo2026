@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { User } from '@/types';
-import { AuthService, UserService } from '@/services';
+import { AuthService } from '@/services';
 
 /**
  * Auth Store State
@@ -15,6 +15,7 @@ interface AuthState {
   // Actions
   login: () => void;
   logout: () => Promise<void>;
+  checkAuth: () => Promise<void>;
   fetchCurrentUser: () => Promise<void>;
   updateUser: (updates: Partial<User>) => void;
   clearError: () => void;
@@ -46,11 +47,39 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
   },
 
+  // Check Authentication (Auto-login if token exists)
+  checkAuth: async () => {
+    const token = localStorage.getItem('accessToken');
+
+    // ถ้าไม่มี token → ไม่ได้ login
+    if (!token) {
+      set({ user: null, isAuthenticated: false, isLoading: false });
+      return;
+    }
+
+    // ถ้ามี token → ดึงข้อมูล user
+    try {
+      set({ isLoading: true, error: null });
+      const user = await AuthService.getCurrentUser();
+      set({ user, isAuthenticated: true, isLoading: false });
+    } catch (error: any) {
+      // Token หมดอายุหรือไม่ valid → ล้าง token
+      localStorage.removeItem('accessToken');
+      localStorage.removeItem('refreshToken');
+      set({
+        user: null,
+        isAuthenticated: false,
+        isLoading: false,
+        error: null // ไม่แสดง error เพราะเป็น auto-check
+      });
+    }
+  },
+
   // Fetch Current User
   fetchCurrentUser: async () => {
     try {
       set({ isLoading: true, error: null });
-      const user = await UserService.getCurrentUser();
+      const user = await AuthService.getCurrentUser();
       set({ user, isAuthenticated: true, isLoading: false });
     } catch (error: any) {
       set({ error: error.message, isLoading: false, isAuthenticated: false });

@@ -12,13 +12,13 @@ export enum GameState {
 }
 
 export enum DrawMode {
-  AUTO = 'AUTO',
-  MANUAL_ROTATE = 'MANUAL_ROTATE',
+  AUTO = 'auto',
+  MANUAL_ROTATE = 'manual_rotate',
 }
 
 export enum BallSet {
-  BALL_75 = '75',
-  BALL_90 = '90',
+  BALL_75 = 'BALL_75',
+  BALL_90 = 'BALL_90',
 }
 
 export enum BingoPattern {

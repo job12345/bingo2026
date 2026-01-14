@@ -2,6 +2,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import LandingPage from '@/pages/LandingPage';
 import LoginPage from '@/pages/LoginPage';
+import ProtectedRoute from '@/components/ProtectedRoute';
 
 // Placeholder Pages (จะสร้างจริงทีหลัง)
 const LobbyPage = () => <div style={{ padding: '2rem' }}><h1>Lobby Page</h1><p>รายการห้องบิงโก</p></div>;
@@ -20,13 +21,48 @@ function App() {
         <Route path="/login" element={<LoginPage />} />
 
         {/* Private Routes (ต้อง Login) */}
-        <Route path="/lobby" element={<LobbyPage />} />
-        <Route path="/room/:roomId" element={<GameRoomPage />} />
-        <Route path="/wallet" element={<WalletPage />} />
-        <Route path="/profile" element={<ProfilePage />} />
+        <Route
+          path="/lobby"
+          element={
+            <ProtectedRoute>
+              <LobbyPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/room/:roomId"
+          element={
+            <ProtectedRoute>
+              <GameRoomPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/wallet"
+          element={
+            <ProtectedRoute>
+              <WalletPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/profile"
+          element={
+            <ProtectedRoute>
+              <ProfilePage />
+            </ProtectedRoute>
+          }
+        />
 
         {/* Admin Routes */}
-        <Route path="/admin/*" element={<AdminPage />} />
+        <Route
+          path="/admin/*"
+          element={
+            <ProtectedRoute>
+              <AdminPage />
+            </ProtectedRoute>
+          }
+        />
 
         {/* 404 */}
         <Route path="*" element={<NotFoundPage />} />

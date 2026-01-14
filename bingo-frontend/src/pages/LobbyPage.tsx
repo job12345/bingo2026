@@ -1,140 +1,359 @@
-import { useEffect } from 'react';
-import { Layout, Typography, Row, Col, Card, Statistic, Button, Space } from 'antd';
-import { PlusOutlined, WalletOutlined, UserOutlined, TrophyOutlined } from '@ant-design/icons';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuthStore, useRoomStore, useWalletStore } from '@/stores';
-import { formatCurrency } from '@/utils';
+import {
+  Row,
+  Col,
+  Card,
+  Button,
+  Typography,
+  Space,
+  Badge,
+  Empty,
+  Modal,
+  Form,
+  Input,
+  InputNumber,
+  Select,
+  message,
+  Statistic,
+} from 'antd';
+import {
+  PlusOutlined,
+  UserOutlined,
+  DollarOutlined,
+  TrophyOutlined,
+  PlayCircleOutlined,
+  ReloadOutlined,
+} from '@ant-design/icons';
+import Layout from '@/components/Layout';
+import { useRoomStore } from '@/stores';
+import { Room, DrawMode, BallSet, CreateRoomDto } from '@/types';
 
-const { Header, Content } = Layout;
-const { Title } = Typography;
+const { Title, Text, Paragraph } = Typography;
 
 /**
- * หน้า Lobby (ดูรายการห้อง)
+ * Lobby Page - หน้าหลักหลัง Login
+ * - แสดงรายการห้องบิงโก
+ * - สร้างห้องใหม่
+ * - เข้าร่วมห้อง
  */
 export default function LobbyPage() {
   const navigate = useNavigate();
-  const { user, logout } = useAuthStore();
-  const { rooms, fetchRooms, isLoading } = useRoomStore();
-  const { balance, fetchBalance } = useWalletStore();
+  const { rooms, isLoading, fetchRooms, createRoom } = useRoomStore();
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [createForm] = Form.useForm<CreateRoomDto>();
 
   useEffect(() => {
-    fetchRooms(true); // ดูห้องที่ Active เท่านั้น
-    fetchBalance();
-  }, []);
+    fetchRooms();
+  }, [fetchRooms]);
+
+  // Handle Create Room
+  const handleCreateRoom = async (values: CreateRoomDto) => {
+    try {
+      const room = await createRoom(values);
+      message.success('สร้างห้องสำเร็จ!');
+      setIsCreateModalOpen(false);
+      createForm.resetFields();
+      navigate(`/room/${room.id}`);
+    } catch (error: any) {
+      message.error(error.response?.data?.message || 'ไม่สามารถสร้างห้องได้');
+    }
+  };
+
+  // Handle Join Room
+  const handleJoinRoom = (roomId: string) => {
+    navigate(`/room/${roomId}`);
+  };
 
   return (
-    <Layout style={{ minHeight: '100vh' }}>
-      {/* Header */}
-      <Header
-        style={{
-          background: '#fff',
-          padding: '0 24px',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
-        }}
-      >
-        <Title level={3} style={{ margin: 0, color: '#667eea' }}>
-          🎯 Bingo Party
+    <Layout>
+      <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
+        {/* Page Header */}
+        <div
+          style={{
+            background: '#fff',
+            padding: '24px',
+            borderRadius: '8px',
+            marginBottom: '24px',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+          }}
+        >
+          <Row gutter={[16, 16]} align="middle" justify="space-between">
+            <Col>
+              <Title level={2} style={{ margin: 0 }}>
+                🎯 ล็อบบี้ห้องบิงโก
+              </Title>
+              <Paragraph type="secondary" style={{ margin: '8px 0 0 0' }}>
+                เลือกห้องที่ต้องการเข้าร่วม หรือสร้างห้องใหม่ของคุณเอง
+              </Paragraph>
+            </Col>
+            <Col>
+              <Space>
+                <Button
+                  icon={<ReloadOutlined />}
+                  onClick={() => fetchRooms()}
+                  loading={isLoading}
+                >
+                  รีเฟรช
+                </Button>
+                <Button
+                  type="primary"
+                  size="large"
+                  icon={<PlusOutlined />}
+                  onClick={() => setIsCreateModalOpen(true)}
+                >
+                  สร้างห้องใหม่
+                </Button>
+              </Space>
+            </Col>
+          </Row>
+        </div>
+
+        {/* Statistics Cards */}
+        <Row gutter={[16, 16]} style={{ marginBottom: '24px' }}>
+          <Col xs={24} sm={8}>
+            <Card>
+              <Statistic
+                title="ห้องที่เปิดอยู่"
+                value={rooms.filter((r) => r.isActive).length}
+                prefix={<PlayCircleOutlined />}
+                valueStyle={{ color: '#3f8600' }}
+              />
+            </Card>
+          </Col>
+          <Col xs={24} sm={8}>
+            <Card>
+              <Statistic
+                title="ผู้เล่นออนไลน์"
+                value={rooms.reduce((sum, r) => sum + r.currentPlayers, 0)}
+                prefix={<UserOutlined />}
+                valueStyle={{ color: '#1890ff' }}
+              />
+            </Card>
+          </Col>
+          <Col xs={24} sm={8}>
+            <Card>
+              <Statistic
+                title="รางวัลรวม"
+                value={rooms.reduce((sum, r) => sum + r.totalPotCollected, 0)}
+                prefix={<TrophyOutlined />}
+                suffix="฿"
+                valueStyle={{ color: '#faad14' }}
+              />
+            </Card>
+          </Col>
+        </Row>
+
+        {/* Room List */}
+        <Title level={4} style={{ marginBottom: '16px' }}>
+          ห้องที่เปิดให้บริการ
         </Title>
 
-        <Space size="large">
-          {/* Balance */}
-          <Statistic
-            title="ยอดเงิน"
-            value={balance}
-            suffix="บาท"
-            valueStyle={{ color: '#3f8600', fontSize: 20 }}
-          />
-
-          {/* Buttons */}
-          <Button icon={<WalletOutlined />} onClick={() => navigate('/wallet')}>
-            กระเป๋าเงิน
-          </Button>
-          <Button icon={<UserOutlined />} onClick={() => navigate('/profile')}>
-            โปรไฟล์
-          </Button>
-          <Button onClick={logout}>ออกจากระบบ</Button>
-        </Space>
-      </Header>
-
-      {/* Content */}
-      <Content style={{ padding: '24px' }}>
-        <Space direction="vertical" size="large" style={{ width: '100%' }}>
-          {/* Welcome Section */}
+        {isLoading && rooms.length === 0 ? (
+          <Card loading={true} />
+        ) : rooms.length === 0 ? (
           <Card>
-            <Row gutter={16}>
-              <Col span={12}>
-                <Statistic title="ยินดีต้อนรับ" value={user?.displayName || 'Guest'} />
-              </Col>
-              <Col span={12}>
-                <Statistic
-                  title="ห้องที่เปิดอยู่"
-                  value={rooms.length}
-                  suffix="ห้อง"
-                  valueStyle={{ color: '#1890ff' }}
-                />
-              </Col>
-            </Row>
-          </Card>
-
-          {/* Rooms Section */}
-          <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
-              <Title level={4}>รายการห้อง</Title>
-              <Button type="primary" icon={<PlusOutlined />}>
-                สร้างห้องใหม่
+            <Empty
+              description="ยังไม่มีห้องเปิดให้บริการ"
+              image={Empty.PRESENTED_IMAGE_SIMPLE}
+            >
+              <Button type="primary" onClick={() => setIsCreateModalOpen(true)}>
+                สร้างห้องแรก
               </Button>
-            </div>
-
-            <Row gutter={[16, 16]}>
-              {rooms.length === 0 ? (
-                <Col span={24}>
-                  <Card style={{ textAlign: 'center', padding: 40 }}>
-                    <TrophyOutlined style={{ fontSize: 48, color: '#ccc' }} />
-                    <Title level={4} style={{ marginTop: 16 }}>
-                      ยังไม่มีห้องเปิดอยู่
-                    </Title>
-                    <p>สร้างห้องใหม่เพื่อเริ่มเล่นกันเลย!</p>
-                  </Card>
-                </Col>
-              ) : (
-                rooms.map((room) => (
-                  <Col xs={24} sm={12} md={8} lg={6} key={room.id}>
-                    <Card
-                      hoverable
-                      onClick={() => navigate(`/room/${room.id}`)}
-                      style={{ borderRadius: 12 }}
-                    >
-                      <Title level={5} ellipsis>
+            </Empty>
+          </Card>
+        ) : (
+          <Row gutter={[16, 16]}>
+            {rooms.map((room: Room) => (
+              <Col xs={24} sm={12} lg={8} key={room.id}>
+                <Card
+                  hoverable
+                  style={{
+                    borderRadius: '8px',
+                    overflow: 'hidden',
+                    border: room.isActive ? '2px solid #52c41a' : '1px solid #d9d9d9',
+                  }}
+                  bodyStyle={{ padding: '16px' }}
+                >
+                  {/* Room Header */}
+                  <div style={{ marginBottom: '12px' }}>
+                    <Space style={{ width: '100%', justifyContent: 'space-between' }}>
+                      <Title level={5} style={{ margin: 0 }}>
                         {room.name}
                       </Title>
-                      <Space direction="vertical" size="small" style={{ width: '100%' }}>
-                        <div>
-                          <strong>ผู้เล่น:</strong> {room.currentPlayers}/{room.maxPlayers}
-                        </div>
-                        <div>
-                          <strong>ราคาการ์ด:</strong> {formatCurrency(room.cardPrice)}
-                        </div>
-                        <div>
-                          <strong>รอบที่:</strong> {room.currentRound}/{room.maxRounds}
-                        </div>
-                        <div>
-                          <strong>โหมด:</strong> {room.drawMode === 'auto' ? 'Auto' : 'Manual Rotate'}
-                        </div>
-                      </Space>
-                      <Button type="primary" block style={{ marginTop: 16 }}>
-                        เข้าร่วม
-                      </Button>
-                    </Card>
-                  </Col>
-                ))
-              )}
-            </Row>
-          </div>
-        </Space>
-      </Content>
+                      <Badge
+                        status={room.isActive ? 'success' : 'default'}
+                        text={room.isActive ? 'เปิด' : 'ปิด'}
+                      />
+                    </Space>
+                  </div>
+
+                  {/* Room Info */}
+                  <Space direction="vertical" size="small" style={{ width: '100%' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <Text type="secondary">
+                        <UserOutlined /> ผู้เล่น
+                      </Text>
+                      <Text strong>
+                        {room.currentPlayers}/{room.maxPlayers}
+                      </Text>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <Text type="secondary">
+                        <DollarOutlined /> ราคาการ์ด
+                      </Text>
+                      <Text strong>{room.cardPrice} ฿</Text>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <Text type="secondary">🎲 ลูกบอล</Text>
+                      <Text>{room.ballSet === BallSet.BALL_75 ? '75 ลูก' : '90 ลูก'}</Text>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <Text type="secondary">🎮 รอบ</Text>
+                      <Text>
+                        {room.currentRound}/{room.maxRounds}
+                      </Text>
+                    </div>
+                  </Space>
+
+                  {/* Join Button */}
+                  <Button
+                    type="primary"
+                    block
+                    style={{ marginTop: '16px' }}
+                    disabled={!room.isActive || room.currentPlayers >= room.maxPlayers}
+                    onClick={() => handleJoinRoom(room.id)}
+                  >
+                    {!room.isActive
+                      ? 'ห้องปิดแล้ว'
+                      : room.currentPlayers >= room.maxPlayers
+                      ? 'เต็มแล้ว'
+                      : 'เข้าร่วม'}
+                  </Button>
+                </Card>
+              </Col>
+            ))}
+          </Row>
+        )}
+      </div>
+
+      {/* Create Room Modal */}
+      <Modal
+        title="🎯 สร้างห้องบิงโกใหม่"
+        open={isCreateModalOpen}
+        onCancel={() => {
+          setIsCreateModalOpen(false);
+          createForm.resetFields();
+        }}
+        footer={null}
+        width={600}
+      >
+        <Form
+          form={createForm}
+          layout="vertical"
+          onFinish={handleCreateRoom}
+          initialValues={{
+            drawMode: DrawMode.AUTO,
+            ballSet: BallSet.BALL_75,
+            maxPlayers: 10,
+            maxRounds: 5,
+            cardPrice: 10,
+            maxCardsPerPlayer: 4,
+            feePercentage: 5,
+          }}
+        >
+          <Form.Item
+            name="name"
+            label="ชื่อห้อง"
+            rules={[
+              { required: true, message: 'กรุณากรอกชื่อห้อง' },
+              { min: 3, message: 'ชื่อห้องต้องมีอย่างน้อย 3 ตัวอักษร' },
+            ]}
+          >
+            <Input placeholder="เช่น: ห้องมือใหม่" size="large" />
+          </Form.Item>
+
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item
+                name="ballSet"
+                label="จำนวนลูกบอล"
+                rules={[{ required: true }]}
+              >
+                <Select size="large">
+                  <Select.Option value={BallSet.BALL_75}>75 ลูก</Select.Option>
+                  <Select.Option value={BallSet.BALL_90}>90 ลูก</Select.Option>
+                </Select>
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item name="drawMode" label="โหมดจับฉลาก" rules={[{ required: true }]}>
+                <Select size="large">
+                  <Select.Option value={DrawMode.AUTO}>อัตโนมัติ</Select.Option>
+                  <Select.Option value={DrawMode.MANUAL_ROTATE}>หมุนเอง</Select.Option>
+                </Select>
+              </Form.Item>
+            </Col>
+          </Row>
+
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item
+                name="maxPlayers"
+                label="ผู้เล่นสูงสุด"
+                rules={[{ required: true }]}
+              >
+                <InputNumber min={2} max={50} size="large" style={{ width: '100%' }} />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item name="maxRounds" label="จำนวนรอบ" rules={[{ required: true }]}>
+                <InputNumber min={1} max={100} size="large" style={{ width: '100%' }} />
+              </Form.Item>
+            </Col>
+          </Row>
+
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item name="cardPrice" label="ราคาการ์ด (฿)" rules={[{ required: true }]}>
+                <InputNumber min={1} max={1000} size="large" style={{ width: '100%' }} />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item
+                name="maxCardsPerPlayer"
+                label="การ์ดสูงสุด/คน"
+                rules={[{ required: true }]}
+              >
+                <InputNumber min={1} max={10} size="large" style={{ width: '100%' }} />
+              </Form.Item>
+            </Col>
+          </Row>
+
+          <Form.Item
+            name="feePercentage"
+            label="ค่าธรรมเนียม (%)"
+            rules={[{ required: true }]}
+          >
+            <InputNumber
+              min={0}
+              max={20}
+              size="large"
+              style={{ width: '100%' }}
+              addonAfter="%"
+            />
+          </Form.Item>
+
+          <Form.Item style={{ marginBottom: 0 }}>
+            <Space style={{ width: '100%', justifyContent: 'flex-end' }}>
+              <Button onClick={() => setIsCreateModalOpen(false)}>ยกเลิก</Button>
+              <Button type="primary" htmlType="submit">
+                สร้างห้อง
+              </Button>
+            </Space>
+          </Form.Item>
+        </Form>
+      </Modal>
     </Layout>
   );
 }
