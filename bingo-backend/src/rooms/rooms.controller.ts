@@ -4,6 +4,7 @@ import { RoomsService } from './rooms.service';
 import { CreateRoomDto } from './dto/create-room.dto';
 import { UpdateRoomDto } from './dto/update-room.dto';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
+import { Public } from '../common/decorators/public.decorator';
 
 @ApiTags('rooms')
 @ApiBearerAuth()
@@ -11,12 +12,14 @@ import { CurrentUser } from '../common/decorators/current-user.decorator';
 export class RoomsController {
   constructor(private readonly roomsService: RoomsService) {}
 
+  @Public()
   @Get()
   @ApiOperation({ summary: 'ดูรายการห้องทั้งหมด' })
   async findAll() {
     return this.roomsService.findAll();
   }
 
+  @Public()
   @Get(':id')
   @ApiOperation({ summary: 'ดูรายละเอียดห้อง' })
   async findOne(@Param('id') id: string) {
