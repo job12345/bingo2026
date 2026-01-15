@@ -1,26 +1,39 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button, Typography, Space, Row, Col, Card } from 'antd';
+import { Button, Typography, Row, Col, Space } from 'antd';
 import {
   TrophyOutlined,
   ThunderboltOutlined,
   SafetyOutlined,
   RocketOutlined,
-  PlayCircleOutlined,
+  GoogleOutlined,
+  PlayCircleFilled,
+  StarFilled,
+  CrownFilled,
 } from '@ant-design/icons';
 import { useAuthStore } from '@/stores';
+import { AuthService } from '@/services';
 
 const { Title, Paragraph } = Typography;
 
 /**
- * หน้า Landing Page - แนะนำเกมบิงโก
+ * หน้า Landing Page - แนะนำเกมบิงโก (Gaming Theme)
  */
 export default function LandingPage() {
   const navigate = useNavigate();
   const { isAuthenticated } = useAuthStore();
+  const [animatedBalls] = useState(() =>
+    Array.from({ length: 8 }, (_, i) => ({
+      id: i,
+      number: Math.floor(Math.random() * 75) + 1,
+      left: `${10 + Math.random() * 80}%`,
+      top: `${10 + Math.random() * 80}%`,
+      delay: Math.random() * 5,
+      size: 40 + Math.random() * 40,
+    }))
+  );
 
   useEffect(() => {
-    // ถ้า Login แล้ว → Redirect ไป Lobby
     if (isAuthenticated) {
       navigate('/lobby');
     }
@@ -28,343 +41,327 @@ export default function LandingPage() {
 
   const features = [
     {
-      icon: <ThunderboltOutlined style={{ fontSize: 40, color: '#faad14' }} />,
+      icon: <ThunderboltOutlined style={{ fontSize: 48, color: '#fbbf24' }} />,
       title: 'เล่นง่าย รวดเร็ว',
-      description: 'ระบบ Real-time เล่นได้ทันที ไม่ต้องรอ',
+      description: 'ระบบ Real-time สุดล้ำ เล่นได้ทันที ไม่ต้องรอ',
+      color: '#fbbf24',
     },
     {
-      icon: <TrophyOutlined style={{ fontSize: 40, color: '#52c41a' }} />,
-      title: 'รางวัลจริง',
-      description: 'ลุ้นรางวัลทุกรอบ ถอนเงินได้จริง',
+      icon: <TrophyOutlined style={{ fontSize: 48, color: '#22c55e' }} />,
+      title: 'รางวัลใหญ่',
+      description: 'ลุ้นรางวัลทุกรอบ ถอนเงินได้จริง 100%',
+      color: '#22c55e',
     },
     {
-      icon: <SafetyOutlined style={{ fontSize: 40, color: '#1890ff' }} />,
+      icon: <SafetyOutlined style={{ fontSize: 48, color: '#3b82f6' }} />,
       title: 'ปลอดภัย มั่นคง',
-      description: 'ระบบรักษาความปลอดภัยระดับสูง',
+      description: 'ระบบรักษาความปลอดภัยระดับ Enterprise',
+      color: '#3b82f6',
     },
     {
-      icon: <RocketOutlined style={{ fontSize: 40, color: '#eb2f96' }} />,
-      title: 'สนุกไม่รู้จบ',
-      description: 'ห้องเกมหลากหลาย เล่นได้ทั้งวัน',
+      icon: <RocketOutlined style={{ fontSize: 48, color: '#ec4899' }} />,
+      title: 'สนุกไม่มีที่สิ้นสุด',
+      description: 'ห้องเกมหลากหลาย เล่นได้ 24 ชั่วโมง',
+      color: '#ec4899',
     },
   ];
 
-  return (
-    <div
-      style={{
-        minHeight: '100vh',
-        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%)',
-        position: 'relative',
-        overflow: 'hidden',
-      }}
-    >
-      {/* Decorative Background Pattern */}
-      <div
-        style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundImage: `
-            radial-gradient(circle at 20% 30%, rgba(255,255,255,0.1) 0%, transparent 50%),
-            radial-gradient(circle at 80% 70%, rgba(255,255,255,0.1) 0%, transparent 50%),
-            radial-gradient(circle at 50% 50%, rgba(255,255,255,0.05) 0%, transparent 50%)
-          `,
-          pointerEvents: 'none',
-        }}
-      />
+  const handleGoogleLogin = () => {
+    AuthService.loginWithGoogle();
+  };
 
-      {/* Bingo Ball Decorations */}
-      <div
-        style={{
-          position: 'absolute',
-          top: '10%',
-          left: '5%',
-          fontSize: '80px',
-          opacity: 0.15,
-          animation: 'float 6s ease-in-out infinite',
-        }}
-      >
+  return (
+    <div className="game-bg" style={{ minHeight: '100vh', position: 'relative', overflow: 'hidden' }}>
+      {/* Animated Bingo Balls */}
+      {animatedBalls.map((ball) => (
+        <div
+          key={ball.id}
+          className="floating-ball"
+          style={{
+            position: 'absolute',
+            left: ball.left,
+            top: ball.top,
+            width: ball.size,
+            height: ball.size,
+            borderRadius: '50%',
+            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: '#fff',
+            fontWeight: 'bold',
+            fontSize: ball.size * 0.35,
+            opacity: 0.15,
+            animation: `float 6s ease-in-out infinite`,
+            animationDelay: `${ball.delay}s`,
+            boxShadow: '0 4px 20px rgba(102, 126, 234, 0.3)',
+          }}
+        >
+          {ball.number}
+        </div>
+      ))}
+
+      {/* Floating Decorations */}
+      <div style={{ position: 'absolute', top: '8%', left: '5%', fontSize: '80px', opacity: 0.08 }} className="floating-ball">
         🎯
       </div>
-      <div
-        style={{
-          position: 'absolute',
-          top: '20%',
-          right: '10%',
-          fontSize: '60px',
-          opacity: 0.15,
-          animation: 'float 7s ease-in-out infinite 1s',
-        }}
-      >
-        🎰
-      </div>
-      <div
-        style={{
-          position: 'absolute',
-          bottom: '15%',
-          left: '8%',
-          fontSize: '70px',
-          opacity: 0.15,
-          animation: 'float 8s ease-in-out infinite 2s',
-        }}
-      >
-        🎲
-      </div>
-      <div
-        style={{
-          position: 'absolute',
-          bottom: '25%',
-          right: '5%',
-          fontSize: '90px',
-          opacity: 0.15,
-          animation: 'float 9s ease-in-out infinite 1.5s',
-        }}
-      >
+      <div style={{ position: 'absolute', bottom: '15%', right: '8%', fontSize: '100px', opacity: 0.08 }} className="floating-ball">
         🏆
       </div>
 
-      {/* CSS Animation */}
-      <style>{`
-        @keyframes float {
-          0%, 100% {
-            transform: translateY(0px) rotate(0deg);
-          }
-          50% {
-            transform: translateY(-20px) rotate(5deg);
-          }
-        }
-      `}</style>
-
       {/* Main Content */}
-      <div
-        style={{
-          position: 'relative',
-          zIndex: 1,
-          padding: '40px 20px',
-          maxWidth: '1200px',
-          margin: '0 auto',
-        }}
-      >
+      <div style={{ position: 'relative', zIndex: 1, padding: '60px 20px', maxWidth: '1400px', margin: '0 auto' }}>
         {/* Hero Section */}
-        <div style={{ textAlign: 'center', marginBottom: '60px' }}>
-          <div style={{ fontSize: '120px', marginBottom: '20px' }}>🎯</div>
+        <div style={{ textAlign: 'center', marginBottom: 80 }}>
+          <div className="slide-up">
+            <div
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 12,
+                background: 'rgba(168, 85, 247, 0.2)',
+                border: '1px solid rgba(168, 85, 247, 0.4)',
+                borderRadius: 50,
+                padding: '10px 28px',
+                marginBottom: 32,
+              }}
+            >
+              <StarFilled style={{ color: '#fbbf24' }} />
+              <span style={{ color: '#fff', fontWeight: 600, fontSize: 14 }}>เกมบิงโกออนไลน์อันดับ 1 ของไทย</span>
+              <StarFilled style={{ color: '#fbbf24' }} />
+            </div>
+          </div>
+
           <Title
             level={1}
+            className="slide-up"
             style={{
-              fontSize: '56px',
-              margin: '0 0 16px 0',
+              fontSize: 'clamp(42px, 10vw, 90px)',
+              fontWeight: 800,
+              margin: 0,
+              lineHeight: 1.1,
               color: '#fff',
-              textShadow: '2px 2px 8px rgba(0,0,0,0.3)',
+              textShadow: '0 4px 30px rgba(0,0,0,0.3)',
             }}
           >
-            Bingo Party Enterprise
+            <span className="gradient-text">BINGO PARTY</span>
+            <br />
+            <span style={{ 
+              background: 'linear-gradient(135deg, #fbbf24, #f59e0b)', 
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+            }}>ENTERPRISE</span>
           </Title>
+
           <Paragraph
+            className="slide-up"
             style={{
-              fontSize: '24px',
-              color: '#fff',
-              marginBottom: '32px',
-              textShadow: '1px 1px 4px rgba(0,0,0,0.3)',
+              fontSize: 'clamp(18px, 3vw, 26px)',
+              color: 'rgba(255,255,255,0.85)',
+              margin: '28px auto 44px',
+              maxWidth: 650,
+              lineHeight: 1.6,
             }}
           >
-            เกมบิงโกออนไลน์ แบบ Real-time 🎰 สนุก เร้าใจ ลุ้นรางวัลได้จริง!
+            🎯 บิงโกออนไลน์แบบ Real-time พร้อมรางวัลจริง!
+            <br />
+            <span style={{ color: 'rgba(255,255,255,0.65)' }}>เล่นง่าย ถอนไว ปลอดภัย 100%</span>
           </Paragraph>
-          <Space size="large">
+
+          {/* CTA Buttons */}
+          <Space size="large" wrap className="slide-up" style={{ justifyContent: 'center' }}>
             <Button
               type="primary"
               size="large"
-              icon={<PlayCircleOutlined />}
-              onClick={() => navigate('/login')}
+              icon={<GoogleOutlined />}
+              onClick={handleGoogleLogin}
+              className="btn-glow"
               style={{
-                height: '56px',
-                fontSize: '18px',
-                padding: '0 40px',
-                borderRadius: '28px',
+                height: 64,
+                paddingLeft: 48,
+                paddingRight: 48,
+                fontSize: 18,
+                fontWeight: 700,
+                borderRadius: 20,
                 background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
                 border: 'none',
-                boxShadow: '0 4px 15px rgba(0,0,0,0.2)',
+                boxShadow: '0 10px 50px rgba(102, 126, 234, 0.5)',
               }}
             >
-              เริ่มเล่นเลย
+              เข้าสู่ระบบด้วย Google
             </Button>
             <Button
               size="large"
-              onClick={() => navigate('/login')}
+              icon={<PlayCircleFilled />}
               style={{
-                height: '56px',
-                fontSize: '18px',
-                padding: '0 40px',
-                borderRadius: '28px',
-                background: 'rgba(255,255,255,0.9)',
-                border: 'none',
-                color: '#667eea',
-                fontWeight: 'bold',
-                boxShadow: '0 4px 15px rgba(0,0,0,0.2)',
+                height: 64,
+                paddingLeft: 48,
+                paddingRight: 48,
+                fontSize: 18,
+                fontWeight: 600,
+                borderRadius: 20,
+                background: 'rgba(255,255,255,0.08)',
+                backdropFilter: 'blur(10px)',
+                border: '2px solid rgba(255,255,255,0.25)',
+                color: '#fff',
               }}
             >
-              เข้าสู่ระบบ
+              ดูวิธีเล่น
             </Button>
           </Space>
-        </div>
 
-        {/* Bingo Card Preview */}
-        <div style={{ textAlign: 'center', marginBottom: '60px' }}>
-          <Card
-            style={{
-              display: 'inline-block',
-              background: 'rgba(255,255,255,0.95)',
-              borderRadius: '16px',
-              padding: '24px',
-              boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
-            }}
-          >
-            <Title level={3} style={{ marginBottom: '16px', color: '#667eea' }}>
-              🎲 ตัวอย่างกระดานบิงโก
-            </Title>
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(5, 1fr)',
-                gap: '8px',
-                width: '300px',
-              }}
-            >
-              {/* Bingo Header */}
-              {['B', 'I', 'N', 'G', 'O'].map((letter) => (
-                <div
-                  key={letter}
-                  style={{
-                    background: '#667eea',
-                    color: '#fff',
-                    padding: '12px',
-                    borderRadius: '8px',
-                    fontWeight: 'bold',
-                    fontSize: '20px',
-                  }}
-                >
-                  {letter}
+          {/* Trust Indicators */}
+          <div className="slide-up" style={{ marginTop: 56 }}>
+            <Row gutter={[24, 16]} justify="center">
+              <Col>
+                <div className="stat-box" style={{ padding: '16px 32px', minWidth: 140 }}>
+                  <div style={{ fontSize: 32, fontWeight: 800, color: '#fbbf24' }}>10K+</div>
+                  <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)' }}>ผู้เล่นออนไลน์</div>
                 </div>
-              ))}
-
-              {/* Sample Numbers */}
-              {[
-                [7, 23, 35, 52, 68],
-                [12, 19, 41, 58, 70],
-                [3, 28, '⭐', 47, 63],
-                [15, 21, 38, 60, 75],
-                [9, 30, 44, 56, 72],
-              ].flat().map((num, i) => (
-                <div
-                  key={i}
-                  style={{
-                    background: num === '⭐' ? '#faad14' : '#f0f0f0',
-                    color: num === '⭐' ? '#fff' : '#333',
-                    padding: '12px',
-                    borderRadius: '8px',
-                    fontWeight: num === '⭐' ? 'bold' : 'normal',
-                    fontSize: num === '⭐' ? '24px' : '16px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
-                >
-                  {num}
+              </Col>
+              <Col>
+                <div className="stat-box" style={{ padding: '16px 32px', minWidth: 140 }}>
+                  <div style={{ fontSize: 32, fontWeight: 800, color: '#22c55e' }}>฿5M+</div>
+                  <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)' }}>แจกรางวัลแล้ว</div>
                 </div>
-              ))}
-            </div>
-            <Paragraph
-              type="secondary"
-              style={{ marginTop: '16px', marginBottom: 0 }}
-            >
-              เลือกตัวเลขที่ถูกออก ครบแถว ครบแนวทแยง หรือ Full House ก่อน ชนะ! 🏆
-            </Paragraph>
-          </Card>
+              </Col>
+              <Col>
+                <div className="stat-box" style={{ padding: '16px 32px', minWidth: 140 }}>
+                  <div style={{ fontSize: 32, fontWeight: 800, color: '#3b82f6' }}>24/7</div>
+                  <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)' }}>เปิดบริการ</div>
+                </div>
+              </Col>
+            </Row>
+          </div>
         </div>
 
         {/* Features Section */}
-        <div style={{ marginBottom: '40px' }}>
-          <Title
-            level={2}
-            style={{
-              textAlign: 'center',
-              color: '#fff',
-              marginBottom: '40px',
-              textShadow: '2px 2px 8px rgba(0,0,0,0.3)',
-            }}
-          >
-            ทำไมต้อง Bingo Party?
-          </Title>
+        <div style={{ marginBottom: 80 }}>
+          <div style={{ textAlign: 'center', marginBottom: 48 }}>
+            <Title level={2} style={{ color: '#fff', margin: 0, fontSize: 36 }}>
+              <CrownFilled style={{ color: '#fbbf24', marginRight: 16 }} />
+              ทำไมต้องเล่นกับเรา?
+            </Title>
+          </div>
+
           <Row gutter={[24, 24]}>
             {features.map((feature, index) => (
-              <Col xs={24} sm={12} md={6} key={index}>
-                <Card
+              <Col xs={24} sm={12} lg={6} key={index}>
+                <div
+                  className="game-card slide-up"
                   style={{
-                    background: 'rgba(255,255,255,0.95)',
-                    borderRadius: '16px',
-                    textAlign: 'center',
                     height: '100%',
-                    boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
-                    transition: 'transform 0.3s ease',
-                  }}
-                  hoverable
-                  bodyStyle={{ padding: '32px 24px' }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.transform = 'translateY(-8px)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.transform = 'translateY(0)';
+                    textAlign: 'center',
+                    padding: 32,
+                    cursor: 'default',
                   }}
                 >
-                  <div style={{ marginBottom: '16px' }}>{feature.icon}</div>
-                  <Title level={4} style={{ marginBottom: '8px' }}>
+                  <div
+                    style={{
+                      width: 88,
+                      height: 88,
+                      borderRadius: '50%',
+                      background: `${feature.color}15`,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      margin: '0 auto 24px',
+                      border: `2px solid ${feature.color}30`,
+                      boxShadow: `0 0 30px ${feature.color}20`,
+                    }}
+                  >
+                    {feature.icon}
+                  </div>
+                  <Title level={4} style={{ color: '#fff', marginBottom: 12, fontSize: 20 }}>
                     {feature.title}
                   </Title>
-                  <Paragraph type="secondary" style={{ marginBottom: 0 }}>
+                  <Paragraph style={{ color: 'rgba(255,255,255,0.65)', margin: 0, fontSize: 15 }}>
                     {feature.description}
                   </Paragraph>
-                </Card>
+                </div>
               </Col>
             ))}
           </Row>
         </div>
 
-        {/* Footer CTA */}
+        {/* How to Play Section */}
         <div
+          className="game-card"
           style={{
             textAlign: 'center',
-            padding: '40px 20px',
-            background: 'rgba(255,255,255,0.1)',
-            borderRadius: '16px',
-            backdropFilter: 'blur(10px)',
+            padding: '56px 32px',
+            background: 'linear-gradient(135deg, rgba(102, 126, 234, 0.15), rgba(168, 85, 247, 0.15))',
+            marginBottom: 60,
           }}
         >
-          <Title level={3} style={{ color: '#fff', marginBottom: '16px' }}>
-            พร้อมเริ่มเล่นแล้วหรือยัง?
+          <Title level={2} style={{ color: '#fff', marginBottom: 40, fontSize: 32 }}>
+            🎮 วิธีเล่นง่ายๆ 3 ขั้นตอน
           </Title>
-          <Paragraph style={{ color: '#fff', fontSize: '16px', marginBottom: '24px' }}>
-            สมัครสมาชิกวันนี้ รับโบนัสต้อนรับ 🎁
-          </Paragraph>
+
+          <Row gutter={[48, 32]}>
+            {[
+              { step: 1, gradient: 'linear-gradient(135deg, #667eea, #764ba2)', title: 'สมัคร & เติมเงิน', desc: 'ล็อกอินด้วย Google แล้วเติม Point เข้าบัญชี' },
+              { step: 2, gradient: 'linear-gradient(135deg, #22c55e, #10b981)', title: 'เลือกห้อง & ซื้อการ์ด', desc: 'เลือกห้องที่ต้องการ แล้วซื้อการ์ดบิงโก' },
+              { step: 3, gradient: 'linear-gradient(135deg, #fbbf24, #f59e0b)', title: 'กดบิงโก & รับรางวัล!', desc: 'ลุ้นเลขที่ออก แล้วกดบิงโกเพื่อรับรางวัล!' },
+            ].map((item) => (
+              <Col xs={24} md={8} key={item.step}>
+                <div
+                  style={{
+                    width: 70,
+                    height: 70,
+                    borderRadius: '50%',
+                    background: item.gradient,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    margin: '0 auto 20px',
+                    fontSize: 28,
+                    fontWeight: 800,
+                    color: item.step === 3 ? '#000' : '#fff',
+                    boxShadow: '0 8px 30px rgba(0,0,0,0.3)',
+                  }}
+                >
+                  {item.step}
+                </div>
+                <Title level={4} style={{ color: '#fff', marginBottom: 8 }}>
+                  {item.title}
+                </Title>
+                <Paragraph style={{ color: 'rgba(255,255,255,0.65)', margin: 0 }}>
+                  {item.desc}
+                </Paragraph>
+              </Col>
+            ))}
+          </Row>
+
           <Button
             type="primary"
             size="large"
-            icon={<PlayCircleOutlined />}
-            onClick={() => navigate('/login')}
+            icon={<GoogleOutlined />}
+            onClick={handleGoogleLogin}
+            className="btn-glow"
             style={{
-              height: '56px',
-              fontSize: '18px',
-              padding: '0 48px',
-              borderRadius: '28px',
-              background: '#fff',
+              marginTop: 44,
+              height: 60,
+              paddingLeft: 56,
+              paddingRight: 56,
+              fontSize: 18,
+              fontWeight: 700,
+              borderRadius: 18,
+              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
               border: 'none',
-              color: '#667eea',
-              fontWeight: 'bold',
-              boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
             }}
           >
-            สมัครสมาชิกฟรี
+            เริ่มเล่นเลย! 🚀
           </Button>
+        </div>
+
+        {/* Footer */}
+        <div style={{ textAlign: 'center', padding: '40px 0', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+          <Paragraph style={{ color: 'rgba(255,255,255,0.45)', margin: 0, fontSize: 14 }}>
+            © 2026 Bingo Party Enterprise. All rights reserved.
+            <br />
+            <span style={{ color: 'rgba(255,255,255,0.3)' }}>พัฒนาด้วย ❤️ สำหรับผู้เล่นที่รักในเกม</span>
+          </Paragraph>
         </div>
       </div>
     </div>

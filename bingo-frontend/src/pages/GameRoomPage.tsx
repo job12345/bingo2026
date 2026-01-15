@@ -1,19 +1,29 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useParams } from 'react-router-dom';
-import { Typography, Card, Spin, Row, Col, Space, Button, InputNumber, Select, Tag, Divider, message } from 'antd';
+import { useParams, useNavigate } from 'react-router-dom';
+import { Typography, Spin, Row, Col, Space, Button, InputNumber, Select, Tag, message } from 'antd';
+import {
+  ArrowLeftOutlined,
+  ShoppingCartOutlined,
+  TrophyOutlined,
+  ThunderboltOutlined,
+  WifiOutlined,
+  DisconnectOutlined,
+} from '@ant-design/icons';
 import Layout from '@/components/Layout';
+import { BingoCard as BingoCardComponent, BingoBall, DrawnNumbersDisplay } from '@/components/bingo';
 import { useRoomStore, useGameStore, useWebSocketStore } from '@/stores';
 import { GameService } from '@/services';
 import { BingoPattern, BingoCard } from '@/types';
 import { useWebSocketEvents } from '@/hooks';
 
-const { Title } = Typography;
+const { Title, Text } = Typography;
 
 /**
- * หน้าห้องเกม (Main Game UI)
+ * หน้าห้องเกม (Main Game UI) - Gaming Theme
  */
 export default function GameRoomPage() {
   const { roomId } = useParams<{ roomId: string }>();
+  const navigate = useNavigate();
   const { currentRoom, fetchRoomById, isLoading } = useRoomStore();
   const { joinRoom: joinWsRoom, leaveRoom: leaveWsRoom, isConnected, connectionState } = useWebSocketStore();
   const {
@@ -97,6 +107,9 @@ export default function GameRoomPage() {
 
   const selectedCard = useMemo(() => myCards.find((c) => c.id === selectedCardId) || null, [myCards, selectedCardId]);
 
+  // Prepare drawn numbers for BingoCard component
+  const drawnNumbers = useMemo(() => currentGame?.drawnNumbers || [], [currentGame?.drawnNumbers]);
+
   const handleBuyCards = async () => {
     if (!currentGame?.id) {
       message.error('ยังไม่พร้อมซื้อการ์ด (ไม่มี gameId)');
@@ -105,7 +118,7 @@ export default function GameRoomPage() {
 
     try {
       await buyCards(currentGame.id, buyQuantity);
-      message.success('ซื้อการ์ดสำเร็จ');
+      message.success('ซื้อการ์ดสำเร็จ!');
     } catch (error: any) {
       message.error(error.response?.data?.message || error.message || 'ซื้อการ์ดไม่สำเร็จ');
     }
@@ -124,169 +137,238 @@ export default function GameRoomPage() {
 
     const ok = await claimBingo(currentGame.id, selectedCardId, selectedPattern);
     if (ok) {
-      message.success('ส่งคำขอบิงโกแล้ว (ระบบจะตรวจสอบฝั่งเซิร์ฟเวอร์)');
+      message.success('🎉 ส่งคำขอบิงโกแล้ว!');
     } else {
       message.error('บิงโกไม่ถูกต้อง หรือเกมยังไม่พร้อม');
     }
   };
 
-  const renderCard = (card: BingoCard) => {
-    const drawn = new Set(currentGame?.drawnNumbers || []);
-    const marked = new Set(card.markedNumbers || []);
-
-    return (
-      <Card
-        key={card.id}
-        size="small"
-        title={
-          <Space>
-            <span>Card</span>
-            {selectedCardId === card.id ? <Tag color="blue">Selected</Tag> : null}
-          </Space>
-        }
-        style={{
-          border: selectedCardId === card.id ? '2px solid #1677ff' : undefined,
-          cursor: 'pointer',
-        }}
-        onClick={() => selectCard(card.id)}
-      >
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 6 }}>
-          {card.numbers.flatMap((row, r) =>
-            row.map((n, c) => {
-              const isFree = n === 0;
-              const isDrawn = !isFree && drawn.has(n);
-              const isMarked = isFree || marked.has(n);
-
-              return (
-                <div
-                  key={`${r}-${c}`}
-                  style={{
-                    height: 38,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    borderRadius: 8,
-                    border: '1px solid #e5e7eb',
-                    background: isMarked ? '#e6f4ff' : isDrawn ? '#fff7e6' : '#fff',
-                    fontWeight: isMarked ? 700 : 500,
-                    userSelect: 'none',
-                  }}
-                >
-                  {isFree ? 'FREE' : n}
-                </div>
-              );
-            })
-          )}
-        </div>
-      </Card>
-    );
+  // Get game state color
+  const getStateColor = (state: string) => {
+    const stateColors: Record<string, string> = {
+      idle: '#6b7280',
+      waiting: '#3b82f6',
+      sitting: '#8b5cf6',
+      buying: '#f59e0b',
+      running: '#22c55e',
+      bingo_race: '#ef4444',
+      winner_declared: '#fbbf24',
+      payout: '#10b981',
+      cooldown: '#6b7280',
+    };
+    return stateColors[state] || '#6b7280';
   };
 
   if (isLoading || !currentRoom || isJoiningGame) {
     return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
-        <Spin size="large" tip="กำลังโหลดห้อง..." />
+      <div className="game-bg" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', gap: 24 }}>
+        <Spin size="large" />
+        <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 18 }}>กำลังเข้าห้องเกม...</Text>
       </div>
     );
   }
 
   return (
     <Layout>
-      <Space direction="vertical" size="large" style={{ width: '100%' }}>
-        <Card>
-          <Row gutter={[16, 16]} align="middle" justify="space-between">
-            <Col>
-              <Title level={3} style={{ margin: 0 }}>
-                {currentRoom.name}
-              </Title>
-              <div style={{ marginTop: 8 }}>
-                <Space wrap>
-                  <Tag color={isConnected ? 'green' : 'red'}>
-                    WS: {isConnected ? 'connected' : connectionState}
-                  </Tag>
-                  <Tag>Room: {roomId}</Tag>
-                  {currentGame?.id ? <Tag>Game: {currentGame.id}</Tag> : null}
-                  {currentGame?.state ? <Tag color="blue">State: {String(currentGame.state)}</Tag> : null}
+      <div className="game-bg" style={{ minHeight: 'calc(100vh - 64px)', padding: '20px' }}>
+        <div style={{ maxWidth: 1600, margin: '0 auto' }}>
+          {/* Header */}
+          <div className="slide-up" style={{ marginBottom: 24 }}>
+            <Row gutter={[16, 16]} align="middle" justify="space-between">
+              <Col>
+                <Space align="center" size={16}>
+                  <Button
+                    icon={<ArrowLeftOutlined />}
+                    onClick={() => window.history.back()}
+                    style={{
+                      background: 'rgba(255,255,255,0.1)',
+                      border: '1px solid rgba(255,255,255,0.2)',
+                      color: '#fff',
+                    }}
+                  />
+                  <div>
+                    <Title level={3} style={{ margin: 0, color: '#fff' }}>
+                      {currentRoom.name}
+                    </Title>
+                    <Space size={8} style={{ marginTop: 4 }}>
+                      <Tag
+                        icon={isConnected ? <WifiOutlined /> : <DisconnectOutlined />}
+                        color={isConnected ? 'success' : 'error'}
+                      >
+                        {isConnected ? 'เชื่อมต่อแล้ว' : connectionState}
+                      </Tag>
+                      {currentGame?.state && (
+                        <Tag color={getStateColor(String(currentGame.state))}>
+                          {String(currentGame.state).toUpperCase()}
+                        </Tag>
+                      )}
+                    </Space>
+                  </div>
                 </Space>
+              </Col>
+              <Col>
+                <div className="stat-box" style={{ padding: '12px 20px' }}>
+                  <Space size={24}>
+                    <div style={{ textAlign: 'center' }}>
+                      <div style={{ fontSize: 24, fontWeight: 700, color: '#fbbf24' }}>{currentGame?.roundNumber ?? '-'}</div>
+                      <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)' }}>รอบ</div>
+                    </div>
+                    <div style={{ width: 1, height: 36, background: 'rgba(255,255,255,0.1)' }} />
+                    <div style={{ textAlign: 'center' }}>
+                      <div style={{ fontSize: 24, fontWeight: 700, color: '#22c55e' }}>{currentGame?.totalBallsDrawn ?? 0}</div>
+                      <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)' }}>ลูกที่ออก</div>
+                    </div>
+                    <div style={{ width: 1, height: 36, background: 'rgba(255,255,255,0.1)' }} />
+                    <div style={{ textAlign: 'center' }}>
+                      <div style={{ fontSize: 24, fontWeight: 700, color: '#a855f7' }}>{myCards.length}</div>
+                      <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)' }}>การ์ดของฉัน</div>
+                    </div>
+                  </Space>
+                </div>
+              </Col>
+            </Row>
+          </div>
+
+          <Row gutter={[24, 24]}>
+            {/* Left Column - Drawn Numbers */}
+            <Col xs={24} lg={7}>
+              <div className="game-card slide-up" style={{ padding: 20 }}>
+                <DrawnNumbersDisplay
+                  drawnBalls={drawnNumbers}
+                  currentBall={currentGame?.currentBall ?? undefined}
+                />
+              </div>
+            </Col>
+
+            {/* Right Column - My Cards & Actions */}
+            <Col xs={24} lg={17}>
+              {/* Action Bar */}
+              <div className="game-card slide-up" style={{ padding: 16, marginBottom: 20 }}>
+                <Row gutter={[16, 16]} align="middle">
+                  <Col flex="auto">
+                    <Space wrap size={12}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <Text style={{ color: 'rgba(255,255,255,0.7)' }}>ซื้อการ์ด:</Text>
+                        <InputNumber
+                          min={1}
+                          max={10}
+                          value={buyQuantity}
+                          onChange={(v) => setBuyQuantity(Number(v || 1))}
+                          style={{ width: 70 }}
+                        />
+                        <Button
+                          type="primary"
+                          icon={<ShoppingCartOutlined />}
+                          onClick={handleBuyCards}
+                          loading={isGameLoading}
+                          disabled={!currentGame?.id}
+                          style={{
+                            background: 'linear-gradient(135deg, #667eea, #764ba2)',
+                            border: 'none',
+                            fontWeight: 600,
+                          }}
+                        >
+                          ซื้อ
+                        </Button>
+                      </div>
+
+                      <div style={{ width: 1, height: 32, background: 'rgba(255,255,255,0.1)' }} />
+
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <Text style={{ color: 'rgba(255,255,255,0.7)' }}>รูปแบบ:</Text>
+                        <Select
+                          style={{ minWidth: 180 }}
+                          value={selectedPattern}
+                          options={patternOptions}
+                          onChange={(v) => setSelectedPattern(v as BingoPattern)}
+                        />
+                        <Button
+                          type="primary"
+                          icon={<TrophyOutlined />}
+                          onClick={handleClaimBingo}
+                          disabled={!selectedCardId || !currentGame?.id}
+                          className="btn-glow"
+                          style={{
+                            background: 'linear-gradient(135deg, #fbbf24, #f59e0b)',
+                            border: 'none',
+                            fontWeight: 700,
+                            color: '#000',
+                          }}
+                        >
+                          กด BINGO! 🎉
+                        </Button>
+                      </div>
+                    </Space>
+                  </Col>
+                  {selectedCard && (
+                    <Col>
+                      <Tag color="purple" style={{ fontSize: 13, padding: '4px 12px' }}>
+                        เลือก: {selectedCard.id.slice(0, 8)}...
+                      </Tag>
+                    </Col>
+                  )}
+                </Row>
+              </div>
+
+              {/* My Cards */}
+              <div className="slide-up" style={{ animationDelay: '0.1s' }}>
+                <div style={{ marginBottom: 16, display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <Title level={4} style={{ margin: 0, color: '#fff' }}>
+                    <ThunderboltOutlined style={{ color: '#fbbf24', marginRight: 8 }} />
+                    การ์ดของฉัน
+                  </Title>
+                  <Tag color="purple" style={{ fontSize: 13 }}>
+                    {myCards.length} ใบ
+                  </Tag>
+                </div>
+
+                {myCards.length === 0 ? (
+                  <div className="game-card" style={{ padding: 48, textAlign: 'center' }}>
+                    <div style={{ fontSize: 64, marginBottom: 16 }}>🎴</div>
+                    <Title level={4} style={{ color: '#fff', marginBottom: 8 }}>
+                      ยังไม่มีการ์ด
+                    </Title>
+                    <Text style={{ color: 'rgba(255,255,255,0.6)' }}>
+                      กดปุ่ม "ซื้อ" ด้านบนเพื่อซื้อการ์ดบิงโกและเริ่มเล่น!
+                    </Text>
+                  </div>
+                ) : (
+                  <Row gutter={[16, 16]}>
+                    {myCards.map((card, index) => (
+                      <Col xs={24} sm={12} xl={8} key={card.id}>
+                        <div
+                          onClick={() => selectCard(card.id)}
+                          style={{
+                            cursor: 'pointer',
+                            transform: selectedCardId === card.id ? 'scale(1.02)' : 'scale(1)',
+                            transition: 'transform 0.2s ease',
+                          }}
+                        >
+                          <div style={{ marginBottom: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 13 }}>
+                              การ์ด #{index + 1}
+                            </Text>
+                            {selectedCardId === card.id && (
+                              <Tag color="blue">✓ เลือกแล้ว</Tag>
+                            )}
+                          </div>
+                          <BingoCardComponent
+                            numbers={card.numbers}
+                            markedPositions={[]}
+                            drawnBalls={drawnNumbers}
+                            size="medium"
+                            isInteractive={false}
+                          />
+                        </div>
+                      </Col>
+                    ))}
+                  </Row>
+                )}
               </div>
             </Col>
           </Row>
-        </Card>
-
-        <Row gutter={[16, 16]}>
-          <Col xs={24} lg={10}>
-            <Card title="สถานะเกม" loading={!currentGame}>
-              <Space direction="vertical" size="small" style={{ width: '100%' }}>
-                <div>
-                  <strong>รอบ:</strong> {currentGame?.roundNumber ?? '-'}
-                </div>
-                <div>
-                  <strong>ลูกล่าสุด:</strong> {currentGame?.currentBall ?? '-'}
-                </div>
-                <div>
-                  <strong>จำนวนลูกที่ออก:</strong> {currentGame?.totalBallsDrawn ?? 0}
-                </div>
-                <div>
-                  <strong>เลขที่ออกแล้ว:</strong>
-                  <div style={{ marginTop: 8 }}>
-                    <Space wrap>
-                      {(currentGame?.drawnNumbers || []).slice(-15).map((n) => (
-                        <Tag key={n}>{n}</Tag>
-                      ))}
-                      {(currentGame?.drawnNumbers || []).length === 0 ? <Tag>ยังไม่มี</Tag> : null}
-                    </Space>
-                  </div>
-                </div>
-              </Space>
-
-              <Divider />
-
-              <Space align="center" wrap>
-                <InputNumber
-                  min={1}
-                  max={10}
-                  value={buyQuantity}
-                  onChange={(v) => setBuyQuantity(Number(v || 1))}
-                />
-                <Button type="primary" onClick={handleBuyCards} loading={isGameLoading} disabled={!currentGame?.id}>
-                  ซื้อการ์ด
-                </Button>
-              </Space>
-            </Card>
-          </Col>
-
-          <Col xs={24} lg={14}>
-            <Card title="การ์ดของฉัน" extra={<Tag>{myCards.length} ใบ</Tag>} loading={isGameLoading}>
-              {myCards.length === 0 ? (
-                <div>ยังไม่มีการ์ด — กด “ซื้อการ์ด” เพื่อเริ่มเล่น</div>
-              ) : (
-                <Row gutter={[12, 12]}>
-                  {myCards.map((c) => (
-                    <Col xs={24} sm={12} key={c.id}>
-                      {renderCard(c)}
-                    </Col>
-                  ))}
-                </Row>
-              )}
-
-              <Divider />
-
-              <Space wrap>
-                <Select
-                  style={{ minWidth: 220 }}
-                  value={selectedPattern}
-                  options={patternOptions}
-                  onChange={(v) => setSelectedPattern(v as BingoPattern)}
-                />
-                <Button type="primary" onClick={handleClaimBingo} disabled={!selectedCardId || !currentGame?.id}>
-                  กด Bingo
-                </Button>
-                {selectedCard ? <Tag color="blue">Selected card: {selectedCard.id.slice(0, 6)}…</Tag> : null}
-              </Space>
-            </Card>
-          </Col>
-        </Row>
-      </Space>
+        </div>
+      </div>
     </Layout>
   );
 }
