@@ -15,6 +15,7 @@ import { BotModule } from './bot/bot.module';
 import { TelegramModule } from './common/telegram/telegram.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { HealthModule } from './health/health.module';
+import { LeaderboardModule } from './leaderboard/leaderboard.module';
 
 @Module({
   imports: [
@@ -57,6 +58,7 @@ import { HealthModule } from './health/health.module';
     AdminModule,
     BotModule,
     HealthModule,
+    LeaderboardModule,
   ],
   providers: [
     {
@@ -65,4 +67,4 @@ import { HealthModule } from './health/health.module';
     },
   ],
 })
-export class AppModule {}
+export class AppModule { }

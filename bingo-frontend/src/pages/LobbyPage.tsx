@@ -84,6 +84,18 @@ export default function LobbyPage() {
               <Col>
                 <Space>
                   <Button
+                    icon={<TrophyOutlined />}
+                    onClick={() => navigate('/leaderboard')}
+                    style={{
+                      background: 'linear-gradient(135deg, #fbbf24, #f59e0b)',
+                      border: 'none',
+                      color: '#000',
+                      fontWeight: 600,
+                    }}
+                  >
+                    Leaderboard
+                  </Button>
+                  <Button
                     icon={<ReloadOutlined />}
                     onClick={() => fetchRooms()}
                     loading={isLoading}
@@ -273,8 +285,8 @@ export default function LobbyPage() {
                       {!room.isActive
                         ? 'ห้องปิดแล้ว'
                         : room.currentPlayers >= room.maxPlayers
-                        ? 'เต็มแล้ว'
-                        : '🎮 เข้าร่วมเกม'}
+                          ? 'เต็มแล้ว'
+                          : '🎮 เข้าร่วมเกม'}
                     </Button>
                   </div>
                 </Col>

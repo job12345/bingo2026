@@ -122,6 +122,15 @@ model User {
   chatMessages        ChatMessage[]
   auditLogs           AuditLog[]
   updatedSettings     SystemSetting[]
+  userAchievements    UserAchievement[]
+  
+  // Referral System
+  referralCode        String?  @unique @map("referral_code") @db.VarChar(10)
+  referredById        String?  @map("referred_by_id") @db.Uuid
+  referredBy          User?    @relation("ReferralRelation", fields: [referredById], references: [id])
+  referrals           User[]   @relation("ReferralRelation")
+  referralRecords     Referral[] @relation("ReferrerRecords")
+  referredRecords     Referral[] @relation("RefereeRecords")
 
   @@index([phoneNumber])
   @@index([googleId])
@@ -418,4 +427,60 @@ model SchemaMigration {
   appliedAt   DateTime @default(now()) @map("applied_at")
 
   @@map("schema_migrations")
+}
+
+// ------------------------------------------
+// Achievement System
+// ------------------------------------------
+
+model Achievement {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  code        String   @unique
+  name        String
+  description String
+  iconUrl     String?  @map("icon_url")
+  pointReward Decimal  @default(0) @map("point_reward") @db.Decimal(10, 2)
+  category    String   @default("general")
+  threshold   Int      @default(1)
+  createdAt   DateTime @default(now()) @map("created_at")
+  
+  userAchievements UserAchievement[]
+  
+  @@index([category])
+  @@map("achievements")
+}
+
+model UserAchievement {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId        String   @map("user_id") @db.Uuid
+  achievementId String   @map("achievement_id") @db.Uuid
+  unlockedAt    DateTime @default(now()) @map("unlocked_at")
+  
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  achievement Achievement @relation(fields: [achievementId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, achievementId])
+  @@index([userId])
+  @@map("user_achievements")
+}
+
+// ------------------------------------------
+// Referral System
+// ------------------------------------------
+
+model Referral {
+  id                   String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  referrerId           String   @map("referrer_id") @db.Uuid
+  refereeId            String   @unique @map("referee_id") @db.Uuid
+  signupRewardPaid     Boolean  @default(false) @map("signup_reward_paid")
+  activityRewardPaid   Boolean  @default(false) @map("activity_reward_paid")
+  refereeGamesPlayed   Int      @default(0) @map("referee_games_played")
+  totalRewardEarned    Decimal  @default(0) @map("total_reward_earned") @db.Decimal(10, 2)
+  createdAt            DateTime @default(now()) @map("created_at")
+  
+  referrer User @relation("ReferrerRecords", fields: [referrerId], references: [id], onDelete: Cascade)
+  referee  User @relation("RefereeRecords", fields: [refereeId], references: [id], onDelete: Cascade)
+  
+  @@index([referrerId])
+  @@map("referrals")
 }

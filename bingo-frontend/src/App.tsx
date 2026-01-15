@@ -7,6 +7,7 @@ import LobbyPage from '@/pages/LobbyPage';
 import GameRoomPage from '@/pages/GameRoomPage';
 import WalletPage from '@/pages/WalletPage';
 import ProfilePage from '@/pages/ProfilePage';
+import LeaderboardPage from '@/pages/LeaderboardPage';
 import AdminPage from '@/pages/AdminPage';
 import NotFoundPage from '@/pages/NotFoundPage';
 import ProtectedRoute from '@/components/ProtectedRoute';
@@ -50,6 +51,14 @@ function App() {
           element={
             <ProtectedRoute>
               <ProfilePage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/leaderboard"
+          element={
+            <ProtectedRoute>
+              <LeaderboardPage />
             </ProtectedRoute>
           }
         />
