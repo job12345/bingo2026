@@ -193,6 +193,7 @@ export default function LandingPage() {
             <Button
               size="large"
               icon={<PlayCircleFilled />}
+              onClick={() => document.getElementById('how-to-play')?.scrollIntoView({ behavior: 'smooth' })}
               style={{
                 height: 64,
                 paddingLeft: 48,
@@ -286,6 +287,7 @@ export default function LandingPage() {
 
         {/* How to Play Section */}
         <div
+          id="how-to-play"
           className="game-card"
           style={{
             textAlign: 'center',
