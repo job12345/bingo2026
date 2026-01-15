@@ -45,9 +45,8 @@ lerna-debug.log*
 uploads/*
 !uploads/.gitkeep
 
-# Prisma
-prisma/migrations/*
-!prisma/migrations/.gitkeep
+# Prisma (migrations are committed for `prisma migrate deploy`)
+prisma/migrations/.gitkeep
 
 # Database
 *.sqlite

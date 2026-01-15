@@ -46,7 +46,8 @@ Thumbs.db
 .claude/
 
 # Prisma
-bingo-backend/prisma/migrations/
+# NOTE: Allow committing migrations (required for `prisma migrate deploy` in CI/VPS)
+!bingo-backend/prisma/migrations/**
 bingo-backend/prisma/*.db
 
 # Testing
