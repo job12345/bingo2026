@@ -67,7 +67,7 @@ export default function LobbyPage() {
 
   return (
     <Layout>
-      <div className="game-bg" style={{ minHeight: 'calc(100vh - 64px)', padding: '24px' }}>
+      <div style={{ padding: '24px' }}>
         <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
           {/* Page Header */}
           <div className="slide-up" style={{ marginBottom: 32 }}>
