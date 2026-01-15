@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button, Card, Typography, Space, Form, Input, Tabs, message } from 'antd';
-import { PhoneOutlined, LockOutlined, UserOutlined } from '@ant-design/icons';
+import { PhoneOutlined, LockOutlined, UserOutlined, GoogleOutlined } from '@ant-design/icons';
 import { useAuthStore } from '@/stores';
 import { AuthService } from '@/services';
 
@@ -73,6 +73,13 @@ export default function LoginPage() {
     }
   };
 
+  /**
+   * Login with Google OAuth
+   */
+  const handleGoogleLogin = () => {
+    AuthService.loginWithGoogle();
+  };
+
   const loginTab = (
     <Form
       form={loginForm}
@@ -111,7 +118,7 @@ export default function LoginPage() {
         />
       </Form.Item>
 
-      <Form.Item style={{ marginBottom: 0 }}>
+      <Form.Item style={{ marginBottom: 16 }}>
         <Button
           type="primary"
           htmlType="submit"
@@ -122,6 +129,23 @@ export default function LoginPage() {
           เข้าสู่ระบบ
         </Button>
       </Form.Item>
+
+      <div style={{ textAlign: 'center', margin: '8px 0', color: '#999' }}>หรือ</div>
+
+      <Button
+        size="large"
+        icon={<GoogleOutlined />}
+        onClick={handleGoogleLogin}
+        style={{
+          width: '100%',
+          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          border: 'none',
+          color: '#fff',
+          fontWeight: 600,
+        }}
+      >
+        เข้าสู่ระบบด้วย Google
+      </Button>
     </Form>
   );
 
@@ -226,7 +250,7 @@ export default function LoginPage() {
         justifyContent: 'center',
         alignItems: 'center',
         minHeight: '100vh',
-        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%)',
+        background: '#0f0f23',
         padding: '20px',
         position: 'relative',
         overflow: 'hidden',
@@ -286,46 +310,46 @@ export default function LoginPage() {
       `}</style>
 
       <div style={{ position: 'relative', zIndex: 1, width: '100%', maxWidth: '450px' }}>
-      <Card
-        style={{
-          width: 450,
-          maxWidth: '100%',
-          borderRadius: 16,
-          boxShadow: '0 8px 16px rgba(0, 0, 0, 0.2)',
-        }}
-      >
-        <Space direction="vertical" size="large" style={{ width: '100%' }}>
-          {/* Logo / Title */}
-          <div style={{ textAlign: 'center' }}>
-            <Title level={1} style={{ marginBottom: 0, color: '#667eea' }}>
-              🎯 Bingo Party
-            </Title>
-            <Paragraph type="secondary">เกมบิงโกออนไลน์ที่สนุกและหาเงินได้จริง</Paragraph>
-          </div>
+        <Card
+          style={{
+            width: 450,
+            maxWidth: '100%',
+            borderRadius: 16,
+            boxShadow: '0 8px 16px rgba(0, 0, 0, 0.2)',
+          }}
+        >
+          <Space direction="vertical" size="large" style={{ width: '100%' }}>
+            {/* Logo / Title */}
+            <div style={{ textAlign: 'center' }}>
+              <Title level={1} style={{ marginBottom: 0, color: '#667eea' }}>
+                🎯 Bingo Party
+              </Title>
+              <Paragraph type="secondary">เกมบิงโกออนไลน์ที่สนุกและหาเงินได้จริง</Paragraph>
+            </div>
 
-          {/* Login/Register Tabs */}
-          <Tabs
-            defaultActiveKey="login"
-            items={[
-              {
-                key: 'login',
-                label: 'เข้าสู่ระบบ',
-                children: loginTab,
-              },
-              {
-                key: 'register',
-                label: 'สมัครสมาชิก',
-                children: registerTab,
-              },
-            ]}
-          />
+            {/* Login/Register Tabs */}
+            <Tabs
+              defaultActiveKey="login"
+              items={[
+                {
+                  key: 'login',
+                  label: 'เข้าสู่ระบบ',
+                  children: loginTab,
+                },
+                {
+                  key: 'register',
+                  label: 'สมัครสมาชิก',
+                  children: registerTab,
+                },
+              ]}
+            />
 
-          {/* Terms */}
-          <Paragraph type="secondary" style={{ fontSize: 12, textAlign: 'center', marginTop: -10 }}>
-            การเข้าสู่ระบบแสดงว่าคุณยอมรับ <a href="/terms">ข้อกำหนดการใช้งาน</a>
-          </Paragraph>
-        </Space>
-      </Card>
+            {/* Terms */}
+            <Paragraph type="secondary" style={{ fontSize: 12, textAlign: 'center', marginTop: -10 }}>
+              การเข้าสู่ระบบแสดงว่าคุณยอมรับ <a href="/terms">ข้อกำหนดการใช้งาน</a>
+            </Paragraph>
+          </Space>
+        </Card>
       </div>
     </div>
   );

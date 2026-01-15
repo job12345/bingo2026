@@ -2,6 +2,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import LandingPage from '@/pages/LandingPage';
 import LoginPage from '@/pages/LoginPage';
+import AuthCallbackPage from '@/pages/AuthCallbackPage';
 import LobbyPage from '@/pages/LobbyPage';
 import GameRoomPage from '@/pages/GameRoomPage';
 import WalletPage from '@/pages/WalletPage';
@@ -17,6 +18,7 @@ function App() {
         {/* Public Routes */}
         <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/auth/callback" element={<AuthCallbackPage />} />
 
         {/* Private Routes (ต้อง Login) */}
         <Route
