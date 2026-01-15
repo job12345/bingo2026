@@ -29,6 +29,8 @@ deploy/
 
 ## 🛠️ Scripts Usage
 
+> หมายเหตุ: สคริปต์ deploy ใช้ไฟล์ docker compose หลักคือ `docker-compose.app.yml` (อยู่ที่ root ของโปรเจค)
+
 ### 1. Deploy Script
 
 **คำอธิบาย:** Deploy to Production/Staging/Development
@@ -51,9 +53,9 @@ BUILD_IMAGES=true ./deploy.sh production
 
 1. ✅ Create Pre-deployment Backup
 2. ✅ Pull Latest Code (if Git)
-3. ✅ Pull Latest Docker Images
+3. ✅ Pull Latest Docker Images (ถ้ามี)
 4. ✅ Stop Old Containers (Graceful)
-5. ✅ Run Database Migrations
+5. ✅ Run Database Migrations (รันใน container ของ backend)
 6. ✅ Start New Containers
 7. ✅ Health Check (5 retries)
 8. ✅ Cleanup Old Docker Resources
@@ -81,7 +83,7 @@ BUILD_IMAGES=true ./deploy.sh production
 **สิ่งที่ Script ทำ:**
 
 1. ✅ Create Backup Directory
-2. ✅ Run `pg_dump`
+2. ✅ Run `pg_dump` (ภายใน postgres container)
 3. ✅ Compress with `gzip`
 4. ✅ Verify Backup File
 5. ✅ Clean Old Backups (30 days)
@@ -111,11 +113,12 @@ RESTORE_DATABASE=true ./rollback.sh
 **สิ่งที่ Script ทำ:**
 
 1. ✅ Stop Current Services
-2. ✅ Pull Previous Docker Images
-3. ✅ Restore Database (Optional)
-4. ✅ Start Previous Version
-5. ✅ Health Check
-6. ✅ Send Slack Notification
+2. ✅ Checkout last successful git commit (ถ้ามี)
+3. ✅ Build Docker images
+4. ✅ Restore Database (Optional)
+5. ✅ Start Previous Version
+6. ✅ Health Check
+7. ✅ Send Slack Notification
 
 **⚠️ คำเตือน:**
 

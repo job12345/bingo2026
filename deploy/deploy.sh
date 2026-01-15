@@ -14,6 +14,8 @@ set -e  # Exit on error
 # =============================================================================
 APP_DIR="/opt/bingo-party"
 ENVIRONMENT="${1:-production}"  # production | staging | development
+COMPOSE_FILE="docker-compose.app.yml"
+BUILD_IMAGES="${BUILD_IMAGES:-true}"
 
 # =============================================================================
 # Functions
@@ -25,6 +27,14 @@ log() {
 error_exit() {
     log "ERROR: $1"
     exit 1
+}
+
+compose() {
+    if command -v docker-compose >/dev/null 2>&1; then
+        docker-compose -f "$COMPOSE_FILE" "$@"
+    else
+        docker compose -f "$COMPOSE_FILE" "$@"
+    fi
 }
 
 # =============================================================================
@@ -48,6 +58,11 @@ fi
 
 cd "$APP_DIR"
 
+# Track last successful commit for rollback
+LAST_SUCCESSFUL_FILE="$APP_DIR/.deploy/last_successful_commit"
+mkdir -p "$APP_DIR/.deploy"
+LAST_SUCCESSFUL_COMMIT=$(cat "$LAST_SUCCESSFUL_FILE" 2>/dev/null || ( [ -d .git ] && git rev-parse HEAD ) || echo "")
+
 # 2. Create Backup
 log "💾 Creating pre-deployment backup..."
 ./deploy/backup.sh || error_exit "Backup failed"
@@ -65,27 +80,26 @@ log "🏗️  Building and deploying..."
 
 # 1. Pull Latest Docker Images
 log "📦 Pulling latest Docker images..."
-docker-compose pull || error_exit "Docker pull failed"
+compose pull || log "WARNING: Docker pull failed (continuing with local build)"
 
 # 2. Build Images (if needed)
 if [ "$BUILD_IMAGES" = "true" ]; then
     log "🔨 Building Docker images..."
-    docker-compose build || error_exit "Docker build failed"
+    compose build || error_exit "Docker build failed"
 fi
 
 # 3. Stop Old Containers (Graceful Shutdown)
 log "🛑 Stopping old containers..."
-docker-compose down --remove-orphans || log "WARNING: Failed to stop containers gracefully"
+compose down --remove-orphans || log "WARNING: Failed to stop containers gracefully"
 
 # 4. Run Database Migrations
 log "🗄️  Running database migrations..."
-cd bingo-backend
-npx prisma migrate deploy || error_exit "Database migration failed"
-cd ..
+compose up -d postgres redis || error_exit "Failed to start database services"
+compose run --rm backend npx prisma migrate deploy || error_exit "Database migration failed"
 
 # 5. Start New Containers
 log "🚀 Starting new containers..."
-docker-compose up -d || error_exit "Failed to start containers"
+compose up -d || error_exit "Failed to start containers"
 
 # =============================================================================
 # Post-Deployment
@@ -123,6 +137,11 @@ if [ $RETRY_COUNT -ge $MAX_RETRIES ]; then
     error_exit "Deployment failed - rolled back"
 fi
 
+# Mark this commit as last successful
+if [ -d ".git" ]; then
+    git rev-parse HEAD > "$LAST_SUCCESSFUL_FILE" || true
+fi
+
 # 3. Clean Up
 log "🧹 Cleaning up old Docker resources..."
 docker system prune -f || log "WARNING: Docker cleanup failed"
@@ -142,7 +161,7 @@ log "📊 Deployment Summary:"
 log "   - Environment: $ENVIRONMENT"
 log "   - Timestamp: $(date)"
 log "   - Backend: http://localhost:8001"
-log "   - Frontend: http://localhost:3000"
+log "   - Frontend: http://localhost:3001"
 
 log "✅ Deployment completed successfully!"
 

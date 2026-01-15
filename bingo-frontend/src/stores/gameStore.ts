@@ -68,13 +68,21 @@ export const useGameStore = create<GameState>()(
 
     // Set My Cards
     setMyCards: (cards) => {
-      set({ myCards: cards });
+      set({
+        myCards: cards.map((c) => ({
+          ...c,
+          markedNumbers: Array.isArray((c as any).markedNumbers) ? (c as any).markedNumbers : [],
+        })),
+      });
     },
 
     // Add Card
     addCard: (card) => {
       set((state) => {
-        state.myCards.push(card);
+        state.myCards.push({
+          ...card,
+          markedNumbers: Array.isArray((card as any).markedNumbers) ? (card as any).markedNumbers : [],
+        });
       });
     },
 
@@ -106,7 +114,12 @@ export const useGameStore = create<GameState>()(
         set({ isLoading: true, error: null });
         const { cards } = await GameService.buyCards(gameId, quantity);
         set((state) => {
-          state.myCards.push(...cards);
+          state.myCards.push(
+            ...cards.map((c) => ({
+              ...c,
+              markedNumbers: Array.isArray((c as any).markedNumbers) ? (c as any).markedNumbers : [],
+            }))
+          );
           state.isLoading = false;
         });
       } catch (error: any) {
@@ -132,6 +145,10 @@ export const useGameStore = create<GameState>()(
     markNumber: (cardId, number) => {
       set((state) => {
         const card = state.myCards.find((c) => c.id === cardId);
+        if (card && !Array.isArray((card as any).markedNumbers)) {
+          (card as any).markedNumbers = [];
+        }
+
         if (card && !card.markedNumbers.includes(number)) {
           card.markedNumbers.push(number);
         }

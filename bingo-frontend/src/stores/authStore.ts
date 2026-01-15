@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { User } from '@/types';
 import { AuthService } from '@/services';
+import { useWebSocketStore } from './websocketStore';
 
 /**
  * Auth Store State
@@ -41,6 +42,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     try {
       set({ isLoading: true, error: null });
       await AuthService.logout();
+      useWebSocketStore.getState().disconnect();
       set({ user: null, isAuthenticated: false, isLoading: false });
     } catch (error: any) {
       set({ error: error.message, isLoading: false });

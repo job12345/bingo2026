@@ -15,6 +15,7 @@ interface RoomState {
   // Actions
   fetchRooms: (isActive?: boolean) => Promise<void>;
   fetchRoomById: (roomId: string) => Promise<void>;
+  createRoom: (data: any) => Promise<Room>;
   setCurrentRoom: (room: Room | null) => void;
   updateRoom: (roomId: string, updates: Partial<Room>) => void;
   clearError: () => void;
@@ -49,6 +50,23 @@ export const useRoomStore = create<RoomState>((set, get) => ({
       set({ currentRoom: room, isLoading: false });
     } catch (error: any) {
       set({ error: error.message, isLoading: false });
+    }
+  },
+
+  // Create Room
+  createRoom: async (data) => {
+    try {
+      set({ isLoading: true, error: null });
+      const room = await RoomService.createRoom(data);
+      set((state) => ({
+        rooms: [room, ...state.rooms],
+        currentRoom: room,
+        isLoading: false,
+      }));
+      return room;
+    } catch (error: any) {
+      set({ error: error.message, isLoading: false });
+      throw error;
     }
   },
 

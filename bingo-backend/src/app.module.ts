@@ -14,6 +14,7 @@ import { AdminModule } from './admin/admin.module';
 import { BotModule } from './bot/bot.module';
 import { TelegramModule } from './common/telegram/telegram.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
+import { HealthModule } from './health/health.module';
 
 @Module({
   imports: [
@@ -55,6 +56,7 @@ import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
     WebsocketModule,
     AdminModule,
     BotModule,
+    HealthModule,
   ],
   providers: [
     {

@@ -1,11 +1,11 @@
 // WebSocket Types
-export enum ConnectionState {
-  DISCONNECTED = 'DISCONNECTED',
-  CONNECTING = 'CONNECTING',
-  CONNECTED = 'CONNECTED',
-  RECONNECTING = 'RECONNECTING',
-  ERROR = 'ERROR',
-}
+// ใช้เป็น string union เพื่อให้ตรงกับ websocket.service.ts / websocketStore.ts
+export type ConnectionState =
+  | 'disconnected'
+  | 'connecting'
+  | 'connected'
+  | 'reconnecting'
+  | 'error';
 
 // Client → Server Events
 export interface JoinRoomEvent {

@@ -3,13 +3,17 @@ import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
+import { SocketIoAdapter } from './websocket/socket-io.adapter';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
+  // WebSocket on separate port (default: 8002)
+  app.useWebSocketAdapter(new SocketIoAdapter(app));
+
   // CORS
   app.enableCors({
-    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+    origin: process.env.FRONTEND_URL || 'http://localhost:3001',
     credentials: true,
   });
 

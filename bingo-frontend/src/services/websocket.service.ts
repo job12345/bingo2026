@@ -27,7 +27,10 @@ class WebSocketService {
       return;
     }
 
-    const wsUrl = import.meta.env.VITE_WS_URL || 'ws://localhost:8002';
+    const wsUrl =
+      import.meta.env.VITE_WS_URL ||
+      (typeof window !== 'undefined' ? window.location.origin : undefined) ||
+      'http://localhost:8002';
 
     this.socket = io(wsUrl, {
       auth: { token },

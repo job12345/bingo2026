@@ -275,6 +275,7 @@ model GameParticipant {
 
   @@index([gameId])
   @@index([userId])
+  @@unique([gameId, userId])
   @@map("game_participants")
 }
 

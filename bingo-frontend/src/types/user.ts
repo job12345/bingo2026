@@ -1,8 +1,8 @@
 // User Types
 export enum UserRole {
-  PLAYER = 'PLAYER',
-  ADMIN = 'ADMIN',
-  BOT = 'BOT',
+  player = 'player',
+  admin = 'admin',
+  bot = 'bot',
 }
 
 export interface User {

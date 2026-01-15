@@ -16,8 +16,7 @@ TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
 BACKUP_DIR="/backups/bingo-party"
 DB_NAME="bingo_party"
 DB_USER="postgres"
-DB_HOST="localhost"
-DB_PORT="5432"
+COMPOSE_FILE="docker-compose.app.yml"
 
 # Backup Filename
 BACKUP_FILE="${BACKUP_DIR}/bingo_party_${TIMESTAMP}.sql"
@@ -38,6 +37,14 @@ error_exit() {
     exit 1
 }
 
+compose() {
+    if command -v docker-compose >/dev/null 2>&1; then
+        docker-compose -f "$COMPOSE_FILE" "$@"
+    else
+        docker compose -f "$COMPOSE_FILE" "$@"
+    fi
+}
+
 # =============================================================================
 # Main Backup Process
 # =============================================================================
@@ -48,13 +55,15 @@ mkdir -p "$BACKUP_DIR" || error_exit "Failed to create backup directory"
 
 # 2. Run pg_dump
 log "📦 Dumping database: $DB_NAME"
-PGPASSWORD="${POSTGRES_PASSWORD}" pg_dump \
-    -h "$DB_HOST" \
-    -p "$DB_PORT" \
-    -U "$DB_USER" \
-    -d "$DB_NAME" \
-    -F p \
-    -f "$BACKUP_FILE" || error_exit "pg_dump failed"
+compose up -d postgres || error_exit "Failed to start postgres"
+
+POSTGRES_CONTAINER_ID=$(compose ps -q postgres)
+if [ -z "$POSTGRES_CONTAINER_ID" ]; then
+    error_exit "Postgres container not found"
+fi
+
+docker exec -e PGPASSWORD="${POSTGRES_PASSWORD}" "$POSTGRES_CONTAINER_ID" \
+    pg_dump -U "$DB_USER" -d "$DB_NAME" -F p > "$BACKUP_FILE" || error_exit "pg_dump failed"
 
 # 3. Compress Backup
 log "🗜️  Compressing backup..."

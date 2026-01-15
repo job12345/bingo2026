@@ -8,7 +8,7 @@ export class GameService {
   /**
    * เข้าร่วมห้อง (Sitting Phase)
    */
-  static async joinRoom(roomId: string): Promise<void> {
+  static async joinRoom(roomId: string): Promise<{ gameId: string; state: string; roundNumber: number }> {
     return apiClient.post(`/game/${roomId}/join`);
   }
 

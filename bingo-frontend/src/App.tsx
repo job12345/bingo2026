@@ -2,15 +2,13 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import LandingPage from '@/pages/LandingPage';
 import LoginPage from '@/pages/LoginPage';
+import LobbyPage from '@/pages/LobbyPage';
+import GameRoomPage from '@/pages/GameRoomPage';
+import WalletPage from '@/pages/WalletPage';
+import ProfilePage from '@/pages/ProfilePage';
+import AdminPage from '@/pages/AdminPage';
+import NotFoundPage from '@/pages/NotFoundPage';
 import ProtectedRoute from '@/components/ProtectedRoute';
-
-// Placeholder Pages (จะสร้างจริงทีหลัง)
-const LobbyPage = () => <div style={{ padding: '2rem' }}><h1>Lobby Page</h1><p>รายการห้องบิงโก</p></div>;
-const GameRoomPage = () => <div style={{ padding: '2rem' }}><h1>Game Room Page</h1><p>ห้องเกม</p></div>;
-const WalletPage = () => <div style={{ padding: '2rem' }}><h1>Wallet Page</h1><p>กระเป๋าเงิน</p></div>;
-const ProfilePage = () => <div style={{ padding: '2rem' }}><h1>Profile Page</h1><p>โปรไฟล์</p></div>;
-const AdminPage = () => <div style={{ padding: '2rem' }}><h1>Admin Page</h1><p>หน้าผู้ดูแลระบบ</p></div>;
-const NotFoundPage = () => <div style={{ padding: '2rem' }}><h1>404 Not Found</h1><p>ไม่พบหน้าที่คุณต้องการ</p></div>;
 
 function App() {
   return (

@@ -12,6 +12,9 @@ interface WebSocketState {
   messages: ChatMessage[];
   error: string | null;
 
+  // Internal
+  _listenersBound: boolean;
+
   // Actions
   connect: (token: string) => void;
   disconnect: () => void;
@@ -33,23 +36,27 @@ export const useWebSocketStore = create<WebSocketState>((set, get) => ({
   messages: [],
   error: null,
 
+  // Internal: prevent duplicate listener registrations
+  _listenersBound: false,
+
   // Connect
   connect: (token) => {
     websocketService.connect(token);
 
-    // Listen to connection state changes
+    // Bind listeners exactly once per app lifetime
+    if (get()._listenersBound) return;
+    set({ _listenersBound: true });
+
     websocketService.on<ConnectionState>('connection_state_changed', (state) => {
       set({ connectionState: state, isConnected: state === 'connected' });
     });
 
-    // Listen to new messages
     websocketService.on<ChatMessage>('new_message', (message) => {
       set((state) => ({
         messages: [...state.messages, message],
       }));
     });
 
-    // Listen to errors
     websocketService.on<{ message: string }>('error', (data) => {
       set({ error: data.message });
     });

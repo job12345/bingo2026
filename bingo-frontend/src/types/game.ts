@@ -1,19 +1,19 @@
 // Game Types
 export enum GameState {
-  IDLE = 'IDLE',
-  WAITING_FOR_ROUND = 'WAITING_FOR_ROUND',
-  SITTING_PHASE = 'SITTING_PHASE',
-  BUYING_PHASE = 'BUYING_PHASE',
-  GAME_RUNNING = 'GAME_RUNNING',
-  BINGO_RACE = 'BINGO_RACE',
-  WINNER_DECLARED = 'WINNER_DECLARED',
-  PAYOUT = 'PAYOUT',
-  COOLDOWN = 'COOLDOWN',
+  idle = 'idle',
+  waiting = 'waiting',
+  sitting = 'sitting',
+  buying = 'buying',
+  running = 'running',
+  bingo_race = 'bingo_race',
+  winner_declared = 'winner_declared',
+  payout = 'payout',
+  cooldown = 'cooldown',
 }
 
 export enum DrawMode {
-  AUTO = 'auto',
-  MANUAL_ROTATE = 'manual_rotate',
+  auto = 'auto',
+  manual_rotate = 'manual_rotate',
 }
 
 export enum BallSet {
@@ -45,6 +45,8 @@ export interface BingoCard {
   cardHash: string;
   purchasePrice: number;
   isWinner: boolean;
+  // UI-only: ใช้แสดงการ mark อัตโนมัติตามลูกที่ออก (ห้ามเอาไปตัดสินผล)
+  markedNumbers: number[];
   winningPattern?: BingoPattern;
   createdAt: string;
 }

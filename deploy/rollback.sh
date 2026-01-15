@@ -14,6 +14,7 @@ set -e  # Exit on error
 # =============================================================================
 APP_DIR="/opt/bingo-party"
 BACKUP_DIR="/backups/bingo-party"
+COMPOSE_FILE="docker-compose.app.yml"
 
 # =============================================================================
 # Functions
@@ -27,6 +28,14 @@ error_exit() {
     exit 1
 }
 
+compose() {
+    if command -v docker-compose >/dev/null 2>&1; then
+        docker-compose -f "$COMPOSE_FILE" "$@"
+    else
+        docker compose -f "$COMPOSE_FILE" "$@"
+    fi
+}
+
 # =============================================================================
 # Main Rollback Process
 # =============================================================================
@@ -35,11 +44,21 @@ log "🔄 Starting Rollback Process..."
 # 1. Stop Current Services
 log "🛑 Stopping current services..."
 cd "$APP_DIR"
-docker-compose down || log "WARNING: Failed to stop services gracefully"
+compose down || log "WARNING: Failed to stop services gracefully"
+
+# Roll back code to last known good commit (if available)
+LAST_SUCCESSFUL_FILE="$APP_DIR/.deploy/last_successful_commit"
+if [ -d ".git" ] && [ -f "$LAST_SUCCESSFUL_FILE" ]; then
+    LAST_SUCCESSFUL_COMMIT=$(cat "$LAST_SUCCESSFUL_FILE")
+    if [ -n "$LAST_SUCCESSFUL_COMMIT" ]; then
+        log "↩️  Checking out last successful commit: $LAST_SUCCESSFUL_COMMIT"
+        git checkout -f "$LAST_SUCCESSFUL_COMMIT" || log "WARNING: Failed to checkout last successful commit"
+    fi
+fi
 
 # 2. Restore Previous Docker Images
-log "📦 Rolling back to previous Docker images..."
-docker-compose pull --tag previous || error_exit "Failed to pull previous images"
+log "🔨 Building images for rollback target..."
+compose build || error_exit "Failed to build images"
 
 # 3. Restore Database Backup (Optional - ใช้เฉพาะกรณี Migration ล้มเหลว)
 if [ "$RESTORE_DATABASE" = "true" ]; then
@@ -53,23 +72,24 @@ if [ "$RESTORE_DATABASE" = "true" ]; then
 
     log "   Using backup: $LATEST_BACKUP"
 
-    # Decompress
-    gunzip -c "$LATEST_BACKUP" > /tmp/restore.sql
+    # Restore via postgres container
+    compose up -d postgres || error_exit "Failed to start postgres for restore"
+    POSTGRES_CONTAINER_ID=$(compose ps -q postgres)
+    if [ -z "$POSTGRES_CONTAINER_ID" ]; then
+        error_exit "Postgres container not found"
+    fi
 
-    # Restore
-    PGPASSWORD="${POSTGRES_PASSWORD}" psql \
-        -h localhost \
-        -U postgres \
-        -d bingo_party \
-        -f /tmp/restore.sql || error_exit "Database restore failed"
+    gunzip -c "$LATEST_BACKUP" | docker exec -i \
+        -e PGPASSWORD="${POSTGRES_PASSWORD}" \
+        "$POSTGRES_CONTAINER_ID" \
+        psql -U postgres -d bingo_party || error_exit "Database restore failed"
 
-    rm /tmp/restore.sql
     log "✅ Database restored successfully"
 fi
 
 # 4. Start Previous Version
 log "🚀 Starting previous version..."
-docker-compose up -d || error_exit "Failed to start previous version"
+compose up -d || error_exit "Failed to start previous version"
 
 # 5. Health Check
 log "🏥 Running health check..."
