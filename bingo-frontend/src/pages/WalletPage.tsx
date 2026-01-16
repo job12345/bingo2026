@@ -7,379 +7,366 @@ import {
   Button,
   Tabs,
   InputNumber,
-  Select,
   Form,
   Table,
   Tag,
-  Statistic,
   message,
-  Modal,
-  Space,
-  Alert,
-  Divider,
+  Spin,
+  Empty,
 } from 'antd';
 import {
   WalletOutlined,
-  BankOutlined,
-  QrcodeOutlined,
-  GlobalOutlined,
+  PlusCircleOutlined,
+  MinusCircleOutlined,
   HistoryOutlined,
-  ArrowUpOutlined,
-  ArrowDownOutlined,
-  CopyOutlined,
-  CheckCircleOutlined,
-  ClockCircleOutlined,
+  ReloadOutlined,
 } from '@ant-design/icons';
 import Layout from '@/components/Layout';
+import { useAuthStore } from '@/stores';
 import { apiClient } from '@/services/api';
-import { useAuthStore, useWalletStore } from '@/stores';
 
-const { Title, Text, Paragraph } = Typography;
+const { Title, Text } = Typography;
 
-// ... (keep interface definitions or import them if available)
 interface Transaction {
   id: string;
   type: string;
-  amount: string;
+  amount: number | string;
   status: string;
   createdAt: string;
-  metadata?: any;
+  notes?: string;
 }
 
-interface DepositResponse {
-  id: string;
-  method: string;
-  actualAmount: number;
-  bankRef?: string;
-  promptPayQR?: string; // base64 or url
-  address?: string; // crypto
-  expiresAt?: string;
-  message: string;
-}
-
+/**
+ * Wallet Page - Clean and Simple Version
+ */
 export default function WalletPage() {
   const { user, fetchCurrentUser } = useAuthStore();
-  const { transactions, fetchTransactions, isLoading: isWalletLoading } = useWalletStore();
-
-  const [depositResult, setDepositResult] = useState<DepositResponse | null>(null);
-
-  // Forms
-  const [bankForm] = Form.useForm();
-  const [promptPayForm] = Form.useForm();
-  const [cryptoForm] = Form.useForm();
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [depositForm] = Form.useForm();
   const [withdrawForm] = Form.useForm();
 
+  // Fetch data on mount
   useEffect(() => {
-    fetchCurrentUser(); // Correct method name
-    fetchTransactions(); // Use store action
+    loadData();
   }, []);
 
-  const handleDepositBank = async (values: { amount: number }) => {
+  const loadData = async () => {
+    setLoading(true);
     try {
-      const res = await apiClient.post<DepositResponse>('/deposit/bank', values);
-      setDepositResult(res);
-      message.success('สร้างรายการฝากเงินสำเร็จ');
-      fetchTransactions(); // Refresh history
+      await fetchCurrentUser();
+      const response = await apiClient.get<any>('/wallet/transactions');
+      const list = response?.transactions || response?.data || response?.items || [];
+      setTransactions(Array.isArray(list) ? list : []);
     } catch (error: any) {
-      message.error(error.response?.data?.message || 'ทำรายการไม่สำเร็จ');
+      console.error('Failed to load wallet data:', error);
+      // Don't show error message, just set empty data
+      setTransactions([]);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleDepositPromptPay = async (values: { amount: number }) => {
+  // Handle Deposit
+  const handleDeposit = async (values: { amount: number }) => {
     try {
-      const res = await apiClient.post<DepositResponse>('/deposit/promptpay', values);
-      setDepositResult(res);
-      message.success('สร้างรายการ QR Code สำเร็จ');
-      fetchTransactions();
+      setLoading(true);
+      await apiClient.post('/wallet/deposit', {
+        amount: values.amount,
+        method: 'promptpay',
+      });
+      message.success('สร้างคำขอฝากเงินสำเร็จ!');
+      depositForm.resetFields();
+      loadData();
     } catch (error: any) {
-      message.error(error.response?.data?.message || 'ทำรายการไม่สำเร็จ');
+      message.error(error?.response?.data?.message || 'ไม่สามารถฝากเงินได้');
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleDepositCrypto = async (values: { amount: number; network: string; currency: string }) => {
+  // Handle Withdraw
+  const handleWithdraw = async (values: { amount: number }) => {
     try {
-      const res = await apiClient.post<DepositResponse>('/deposit/crypto', values);
-      setDepositResult(res);
-      message.success('สร้างรายการ Crypto สำเร็จ');
-      fetchTransactions();
+      setLoading(true);
+      await apiClient.post('/wallet/withdraw', {
+        amount: values.amount,
+      });
+      message.success('สร้างคำขอถอนเงินสำเร็จ!');
+      withdrawForm.resetFields();
+      loadData();
     } catch (error: any) {
-      message.error(error.response?.data?.message || 'ทำรายการไม่สำเร็จ');
+      message.error(error?.response?.data?.message || 'ไม่สามารถถอนเงินได้');
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleWithdraw = async (values: any) => {
-    Modal.info({
-      title: 'แจ้งถอนเงิน',
-      content: (
-        <div>
-          <p>ระบบถอนเงินอัตโนมัติปิดปรับปรุงชั่วคราว</p>
-          <p>กรุณาติดต่อ Admin เพื่อถอนเงิน: <a href="https://line.me/ti/p/@bingo2026" target="_blank">Line: @bingo2026</a></p>
-        </div>
-      )
-    });
-  };
-
+  // Transaction columns
   const columns = [
     {
-      title: 'Date',
+      title: 'วันที่',
       dataIndex: 'createdAt',
-      key: 'date',
-      render: (d: any) => d ? new Date(d).toLocaleString('th-TH') : '-'
+      key: 'createdAt',
+      render: (date: string) => {
+        try {
+          return new Date(date).toLocaleDateString('th-TH', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+          });
+        } catch {
+          return '-';
+        }
+      },
     },
     {
-      title: 'Type',
-      dataIndex: 'method',
+      title: 'ประเภท',
+      dataIndex: 'type',
       key: 'type',
-      render: (t: any) => <Tag color="blue">{String(t || 'UNKNOWN').toUpperCase()}</Tag>
+      render: (type: string) => {
+        const config: Record<string, { color: string; label: string }> = {
+          deposit: { color: 'green', label: 'ฝากเงิน' },
+          withdraw: { color: 'red', label: 'ถอนเงิน' },
+          win: { color: 'gold', label: 'ชนะเกม' },
+          bet: { color: 'blue', label: 'เดิมพัน' },
+        };
+        const { color, label } = config[type] || { color: 'default', label: type };
+        return <Tag color={color}>{label}</Tag>;
+      },
     },
     {
-      title: 'Amount',
-      dataIndex: 'actualAmount', // สำหรับ deposit
+      title: 'จำนวน',
+      dataIndex: 'amount',
       key: 'amount',
-      render: (a: any, record: any) => {
-        // Fallback for withdrawal or other types if fields differ
-        const amount = a || record.amount || record.requestedAmount || 0;
-        return <Text type="success" strong>+{Number(amount).toLocaleString()} ฿</Text>;
-      }
+      render: (amount: number | string, record: Transaction) => {
+        const num = Number(amount) || 0;
+        const isPositive = ['deposit', 'win'].includes(record.type);
+        return (
+          <Text style={{ color: isPositive ? '#22c55e' : '#ef4444', fontWeight: 600 }}>
+            {isPositive ? '+' : '-'}฿{Math.abs(num).toLocaleString()}
+          </Text>
+        );
+      },
     },
     {
-      title: 'Status',
+      title: 'สถานะ',
       dataIndex: 'status',
       key: 'status',
-      render: (s: any) => {
-        const status = String(s || 'pending').toLowerCase();
-        let color = 'default';
-        if (status === 'confirmed' || status === 'completed' || status === 'success') color = 'success';
-        if (status === 'pending') color = 'processing';
-        if (status === 'rejected' || status === 'expired' || status === 'failed') color = 'error';
-        return <Tag color={color}>{status.toUpperCase()}</Tag>;
-      }
+      render: (status: string) => {
+        const config: Record<string, { color: string; label: string }> = {
+          completed: { color: 'success', label: 'สำเร็จ' },
+          pending: { color: 'warning', label: 'รอดำเนินการ' },
+          cancelled: { color: 'error', label: 'ยกเลิก' },
+          failed: { color: 'error', label: 'ล้มเหลว' },
+        };
+        const { color, label } = config[status] || { color: 'default', label: status };
+        return <Tag color={color}>{label}</Tag>;
+      },
     },
   ];
 
-  // Safe transaction data
-  const safeTransactions = Array.isArray(transactions) ? transactions : [];
+  const tabItems = [
+    {
+      key: 'deposit',
+      label: (
+        <span>
+          <PlusCircleOutlined /> ฝากเงิน
+        </span>
+      ),
+      children: (
+        <Card className="game-card" style={{ background: 'rgba(34, 197, 94, 0.1)' }}>
+          <Title level={4} style={{ color: '#22c55e', marginBottom: 24 }}>
+            💳 ฝากเงินเข้ากระเป๋า
+          </Title>
+          <Form form={depositForm} layout="vertical" onFinish={handleDeposit}>
+            <Form.Item
+              name="amount"
+              label={<Text style={{ color: '#fff' }}>จำนวนเงิน (บาท)</Text>}
+              rules={[
+                { required: true, message: 'กรุณาระบุจำนวนเงิน' },
+                { type: 'number', min: 10, message: 'ขั้นต่ำ 10 บาท' },
+              ]}
+            >
+              <InputNumber
+                size="large"
+                min={10}
+                max={100000}
+                style={{ width: '100%' }}
+                placeholder="เช่น 100"
+                formatter={(value) => `฿ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+              />
+            </Form.Item>
+            <Button
+              type="primary"
+              htmlType="submit"
+              size="large"
+              loading={loading}
+              block
+              style={{
+                background: 'linear-gradient(135deg, #22c55e, #15803d)',
+                border: 'none',
+                height: 50,
+                fontWeight: 600,
+              }}
+            >
+              ฝากเงิน
+            </Button>
+          </Form>
+        </Card>
+      ),
+    },
+    {
+      key: 'withdraw',
+      label: (
+        <span>
+          <MinusCircleOutlined /> ถอนเงิน
+        </span>
+      ),
+      children: (
+        <Card className="game-card" style={{ background: 'rgba(239, 68, 68, 0.1)' }}>
+          <Title level={4} style={{ color: '#ef4444', marginBottom: 24 }}>
+            💸 ถอนเงินออกจากกระเป๋า
+          </Title>
+          <Form form={withdrawForm} layout="vertical" onFinish={handleWithdraw}>
+            <Form.Item
+              name="amount"
+              label={<Text style={{ color: '#fff' }}>จำนวนเงิน (บาท)</Text>}
+              rules={[
+                { required: true, message: 'กรุณาระบุจำนวนเงิน' },
+                { type: 'number', min: 100, message: 'ขั้นต่ำ 100 บาท' },
+              ]}
+            >
+              <InputNumber
+                size="large"
+                min={100}
+                max={user?.balance || 0}
+                style={{ width: '100%' }}
+                placeholder="เช่น 500"
+                formatter={(value) => `฿ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+              />
+            </Form.Item>
+            <Button
+              type="primary"
+              htmlType="submit"
+              size="large"
+              loading={loading}
+              block
+              danger
+              style={{
+                height: 50,
+                fontWeight: 600,
+              }}
+            >
+              ถอนเงิน
+            </Button>
+          </Form>
+        </Card>
+      ),
+    },
+    {
+      key: 'history',
+      label: (
+        <span>
+          <HistoryOutlined /> ประวัติ
+        </span>
+      ),
+      children: (
+        <Card className="game-card">
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
+            <Title level={4} style={{ color: '#fff', margin: 0 }}>
+              📋 ประวัติธุรกรรม
+            </Title>
+            <Button icon={<ReloadOutlined />} onClick={loadData} loading={loading}>
+              รีเฟรช
+            </Button>
+          </div>
+          <Table
+            dataSource={transactions}
+            columns={columns}
+            rowKey="id"
+            pagination={{ pageSize: 10 }}
+            loading={loading}
+            locale={{
+              emptyText: <Empty description="ยังไม่มีประวัติธุรกรรม" />,
+            }}
+            style={{ background: 'transparent' }}
+          />
+        </Card>
+      ),
+    },
+  ];
 
   return (
     <Layout>
-      <div style={{ padding: '24px', maxWidth: 1000, margin: '0 auto' }}>
-        <Title level={2} style={{ color: '#fff', marginBottom: 24 }}>
-          <WalletOutlined /> กระเป๋าเงิน
-        </Title>
+      <div style={{ padding: '24px', maxWidth: 1200, margin: '0 auto' }}>
+        {/* Header */}
+        <div className="slide-up" style={{ marginBottom: 32 }}>
+          <Title level={2} style={{ color: '#fff', margin: 0, display: 'flex', alignItems: 'center', gap: 12 }}>
+            <WalletOutlined style={{ color: '#fbbf24' }} />
+            <span className="gradient-text">กระเป๋าเงิน</span>
+          </Title>
+        </div>
 
         {/* Balance Card */}
-        <Card style={{ marginBottom: 24, background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)', border: 'none' }}>
-          <Row align="middle" justify="space-between">
-            <Col>
-              <Text style={{ color: 'rgba(255,255,255,0.8)', fontSize: 16 }}>ยอดเงินคงเหลือ</Text>
-              <div style={{ fontSize: 48, fontWeight: 700, color: '#fff' }}>
-                ฿{Number(user?.pointBalance || 0).toLocaleString()}
+        <Row gutter={[24, 24]} style={{ marginBottom: 32 }}>
+          <Col xs={24} md={12}>
+            <Card
+              className="game-card slide-up"
+              style={{
+                background: 'linear-gradient(135deg, rgba(102, 126, 234, 0.2), rgba(168, 85, 247, 0.2))',
+                borderColor: 'rgba(168, 85, 247, 0.3)',
+              }}
+            >
+              <div style={{ textAlign: 'center', padding: '24px 0' }}>
+                <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 16 }}>ยอดเงินคงเหลือ</Text>
+                <div style={{ marginTop: 8 }}>
+                  {loading ? (
+                    <Spin size="large" />
+                  ) : (
+                    <Title level={1} style={{ margin: 0, color: '#fbbf24', fontSize: 48 }}>
+                      ฿{(user?.balance || 0).toLocaleString()}
+                    </Title>
+                  )}
+                </div>
               </div>
-            </Col>
-            <Col>
-              <Button size="large" type="default" ghost style={{ marginRight: 12 }}>
-                ประวัติ
-              </Button>
-            </Col>
-          </Row>
-        </Card>
-
-        {/* Action Tabs */}
-        <Card bodyStyle={{ padding: 0 }}>
-          <Tabs
-            size="large"
-            type="card"
-            style={{ width: '100%' }}
-            items={[
-              {
-                key: 'deposit',
-                label: <span><ArrowUpOutlined /> ฝากเงิน</span>,
-                children: (
-                  <div style={{ padding: 24 }}>
-                    <Tabs
-                      tabPosition="left"
-                      items={[
-                        {
-                          key: 'bank',
-                          label: <span><BankOutlined /> โอนธนาคาร</span>,
-                          children: (
-                            <div style={{ maxWidth: 400 }}>
-                              <Title level={4}>ฝากเงินผ่านธนาคาร</Title>
-                              <Form form={bankForm} layout="vertical" onFinish={handleDepositBank}>
-                                <Form.Item name="amount" label="จำนวนเงิน (บาท)" rules={[{ required: true, type: 'number', min: 20 }]}>
-                                  <InputNumber style={{ width: '100%' }} size="large" placeholder="ขั้นต่ำ 20 บาท" />
-                                </Form.Item>
-                                <Button type="primary" htmlType="submit" block size="large">
-                                  แจ้งฝากเงิน
-                                </Button>
-                              </Form>
-                            </div>
-                          ),
-                        },
-                        {
-                          key: 'promptpay',
-                          label: <span><QrcodeOutlined /> PromptPay</span>,
-                          children: (
-                            <div style={{ maxWidth: 400 }}>
-                              <Title level={4}>สแกน QR PromptPay</Title>
-                              <Form form={promptPayForm} layout="vertical" onFinish={handleDepositPromptPay}>
-                                <Form.Item name="amount" label="จำนวนเงิน (บาท)" rules={[{ required: true, type: 'number', min: 20 }]}>
-                                  <InputNumber style={{ width: '100%' }} size="large" placeholder="ขั้นต่ำ 20 บาท" />
-                                </Form.Item>
-                                <Button type="primary" htmlType="submit" block size="large">
-                                  สร้าง QR Code
-                                </Button>
-                              </Form>
-                            </div>
-                          ),
-                        },
-                        {
-                          key: 'crypto',
-                          label: <span><GlobalOutlined /> Crypto</span>,
-                          children: (
-                            <div style={{ maxWidth: 400 }}>
-                              <Title level={4}>ฝากเหรียญ Crypto</Title>
-                              <Form form={cryptoForm} layout="vertical" onFinish={handleDepositCrypto} initialValues={{ network: 'BSC', currency: 'USDT' }}>
-                                <Form.Item name="amount" label="จำนวน (USDT)" rules={[{ required: true, type: 'number', min: 1 }]}>
-                                  <InputNumber style={{ width: '100%' }} size="large" />
-                                </Form.Item>
-                                <Form.Item name="network" label="Network">
-                                  <Select>
-                                    <Select.Option value="BSC">BSC (BEP20)</Select.Option>
-                                  </Select>
-                                </Form.Item>
-                                <Form.Item name="currency" label="Currency">
-                                  <Select>
-                                    <Select.Option value="USDT">USDT</Select.Option>
-                                  </Select>
-                                </Form.Item>
-                                <Button type="primary" htmlType="submit" block size="large">
-                                  รับ Address
-                                </Button>
-                              </Form>
-                            </div>
-                          ),
-                        },
-                      ]}
-                    />
-
-                    {/* Deposit Result Modal/Display */}
-                    {depositResult && (
-                      <Modal
-                        open={!!depositResult}
-                        onCancel={() => setDepositResult(null)}
-                        footer={null}
-                        title="รายละเอียดการฝากเงิน"
-                      >
-                        <Alert
-                          message={depositResult.message}
-                          description="กรุณาโอนยอดเงินให้ตรงจุดทศนิยมเพื่อให้ระบบตรวจสอบอัตโนมัติ"
-                          type="warning"
-                          showIcon
-                          style={{ marginBottom: 16 }}
-                        />
-                        <div style={{ textAlign: 'center', marginBottom: 24 }}>
-                          <Title level={2} style={{ color: '#3b82f6', margin: 0 }}>
-                            ฿{depositResult.actualAmount.toFixed(2)}
-                          </Title>
-                          <Text type="secondary">ยอดที่ต้องโอน</Text>
-                        </div>
-
-                        {depositResult.method === 'bank_transfer' && (
-                          <div style={{ background: '#f5f5f5', padding: 16, borderRadius: 8 }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-                              <Text>ธนาคาร:</Text>
-                              <Text strong>KBANK (กสิกรไทย)</Text>
-                            </div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-                              <Text>เลขบัญชี:</Text>
-                              <Text strong copyable>123-4-56789-0</Text>
-                            </div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                              <Text>ชื่อบัญชี:</Text>
-                              <Text strong>บจก. บิงโกปาร์ตี้</Text>
-                            </div>
-                          </div>
-                        )}
-
-                        {depositResult.method === 'promptpay' && (
-                          <div style={{ textAlign: 'center' }}>
-                            {/* Mock QR display */}
-                            <div style={{ width: 200, height: 200, background: '#fff', margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #ddd' }}>
-                              <QrcodeOutlined style={{ fontSize: 100 }} />
-                            </div>
-                            <Text type="secondary" style={{ marginTop: 8, display: 'block' }}>PromptPay QR Mockup</Text>
-                          </div>
-                        )}
-
-                        {depositResult.method === 'crypto' && (
-                          <div>
-                            <Text>Wallet Address:</Text>
-                            <Paragraph copyable style={{ background: '#f5f5f5', padding: 8, borderRadius: 4, marginTop: 4 }}>
-                              {depositResult.address}
-                            </Paragraph>
-                            <Alert message="โอนเฉพาะ USDT (BEP20) เท่านั้น" type="info" showIcon />
-                          </div>
-                        )}
-
-                        <Divider />
-                        <div style={{ textAlign: 'center' }}>
-                          <Button type="primary" onClick={() => setDepositResult(null)}>เข้าใจแล้ว</Button>
-                        </div>
-                      </Modal>
-                    )}
+            </Card>
+          </Col>
+          <Col xs={24} md={12}>
+            <Card className="game-card slide-up" style={{ animationDelay: '0.1s' }}>
+              <Row gutter={16}>
+                <Col span={12}>
+                  <div style={{ textAlign: 'center', padding: '16px 0' }}>
+                    <Text style={{ color: 'rgba(255,255,255,0.6)' }}>ฝากทั้งหมด</Text>
+                    <div style={{ fontSize: 24, fontWeight: 700, color: '#22c55e', marginTop: 8 }}>
+                      ฿{transactions
+                        .filter((t) => t.type === 'deposit' && t.status === 'completed')
+                        .reduce((sum, t) => sum + (Number(t.amount) || 0), 0)
+                        .toLocaleString()}
+                    </div>
                   </div>
-                ),
-              },
-              {
-                key: 'withdraw',
-                label: <span><ArrowDownOutlined /> ถอนเงิน</span>,
-                children: (
-                  <div style={{ padding: 24, maxWidth: 500, margin: '0 auto' }}>
-                    <Alert
-                      message="การถอนเงิน"
-                      description="ถอนขั้นต่ำ 300 บาท - เงินจะเข้าบัญชีภายใน 5-15 นาที"
-                      type="info"
-                      showIcon
-                      style={{ marginBottom: 24 }}
-                    />
-                    <Form form={withdrawForm} layout="vertical" onFinish={handleWithdraw}>
-                      <Form.Item name="amount" label="จำนวนเงินที่ต้องการถอน" rules={[{ required: true, type: 'number', min: 300, max: Number(user?.pointBalance || 0) }]}>
-                        <InputNumber style={{ width: '100%' }} size="large" addonAfter="฿" />
-                      </Form.Item>
-                      <Form.Item name="bank" label="ธนาคารปลายทาง" rules={[{ required: true }]}>
-                        <Select placeholder="เลือกธนาคาร">
-                          <Select.Option value="kbank">กสิกรไทย</Select.Option>
-                          <Select.Option value="scb">ไทยพาณิชย์</Select.Option>
-                          <Select.Option value="ktb">กรุงไทย</Select.Option>
-                          <Select.Option value="bbl">กรุงเทพ</Select.Option>
-                        </Select>
-                      </Form.Item>
-                      <Form.Item name="accountNo" label="เลขบัญชี" rules={[{ required: true, len: 10 }]}>
-                        <InputNumber style={{ width: '100%' }} stringMode placeholder="xxxxxxxxxx" />
-                      </Form.Item>
-                      <Button type="primary" htmlType="submit" block size="large" danger>
-                        แจ้งถอนเงิน
-                      </Button>
-                    </Form>
+                </Col>
+                <Col span={12}>
+                  <div style={{ textAlign: 'center', padding: '16px 0' }}>
+                    <Text style={{ color: 'rgba(255,255,255,0.6)' }}>ถอนทั้งหมด</Text>
+                    <div style={{ fontSize: 24, fontWeight: 700, color: '#ef4444', marginTop: 8 }}>
+                      ฿{transactions
+                        .filter((t) => t.type === 'withdraw' && t.status === 'completed')
+                        .reduce((sum, t) => sum + (Number(t.amount) || 0), 0)
+                        .toLocaleString()}
+                    </div>
                   </div>
-                ),
-              },
-              {
-                key: 'history',
-                label: <span><HistoryOutlined /> ประวัติธุรกรรม</span>,
-                children: (
-                  <Table
-                    columns={columns}
-                    dataSource={safeTransactions}
-                    rowKey="id"
-                    loading={isWalletLoading}
-                    pagination={{ pageSize: 10 }}
-                  />
-                ),
-              },
-            ]}
-          />
+                </Col>
+              </Row>
+            </Card>
+          </Col>
+        </Row>
+
+        {/* Tabs */}
+        <Card className="game-card slide-up" style={{ animationDelay: '0.2s' }}>
+          <Tabs items={tabItems} size="large" defaultActiveKey="deposit" />
         </Card>
       </div>
     </Layout>
