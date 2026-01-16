@@ -32,10 +32,11 @@ import {
 } from '@ant-design/icons';
 import Layout from '@/components/Layout';
 import { apiClient } from '@/services/api';
-import { useAuthStore } from '@/stores';
+import { useAuthStore, useWalletStore } from '@/stores';
 
 const { Title, Text, Paragraph } = Typography;
 
+// ... (keep interface definitions or import them if available)
 interface Transaction {
   id: string;
   type: string;
@@ -57,9 +58,9 @@ interface DepositResponse {
 }
 
 export default function WalletPage() {
-  const { user, fetchProfile } = useAuthStore();
-  const [loading, setLoading] = useState(false);
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const { user, fetchCurrentUser } = useAuthStore();
+  const { transactions, fetchTransactions, isLoading: isWalletLoading } = useWalletStore();
+
   const [depositResult, setDepositResult] = useState<DepositResponse | null>(null);
 
   // Forms
@@ -68,24 +69,9 @@ export default function WalletPage() {
   const [cryptoForm] = Form.useForm();
   const [withdrawForm] = Form.useForm();
 
-  const fetchTransactions = async () => {
-    try {
-      setLoading(true);
-      // Mock history endpoint if not exists, assume GET /transactions
-      // If backend doesn't have it, we might need to rely on deposit history /deposit/history
-      // Let's try /deposit/history for now as that was in API list
-      const res = await apiClient.get<Transaction[]>('/deposit/history');
-      setTransactions(res || []);
-    } catch (error) {
-      console.error('Failed to fetch transactions', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
-    fetchProfile(); // update balance
-    fetchTransactions();
+    fetchCurrentUser(); // Correct method name
+    fetchTransactions(); // Use store action
   }, []);
 
   const handleDepositBank = async (values: { amount: number }) => {
@@ -93,7 +79,7 @@ export default function WalletPage() {
       const res = await apiClient.post<DepositResponse>('/deposit/bank', values);
       setDepositResult(res);
       message.success('สร้างรายการฝากเงินสำเร็จ');
-      fetchTransactions();
+      fetchTransactions(); // Refresh history
     } catch (error: any) {
       message.error(error.response?.data?.message || 'ทำรายการไม่สำเร็จ');
     }
@@ -122,10 +108,6 @@ export default function WalletPage() {
   };
 
   const handleWithdraw = async (values: any) => {
-    // Note: Assuming endpoint exists or Mocking for now as Phase 3 didn't specify user withdraw endpoint details
-    // But logically it should be POST /payout/request or similar.
-    // Since PayoutModule handles auto-payout, let's assume we need manual request for now.
-    // Fallback: Notify user to contact admin line due to security in beta.
     Modal.info({
       title: 'แจ้งถอนเงิน',
       content: (
@@ -138,27 +120,45 @@ export default function WalletPage() {
   };
 
   const columns = [
-    { title: 'Date', dataIndex: 'createdAt', key: 'date', render: (d: string) => new Date(d).toLocaleString('th-TH') },
-    { title: 'Type', dataIndex: 'method', key: 'type', render: (t: string) => <Tag color="blue">{t?.toUpperCase()}</Tag> },
+    {
+      title: 'Date',
+      dataIndex: 'createdAt',
+      key: 'date',
+      render: (d: any) => d ? new Date(d).toLocaleString('th-TH') : '-'
+    },
+    {
+      title: 'Type',
+      dataIndex: 'method',
+      key: 'type',
+      render: (t: any) => <Tag color="blue">{String(t || 'UNKNOWN').toUpperCase()}</Tag>
+    },
     {
       title: 'Amount',
-      dataIndex: 'actualAmount',
+      dataIndex: 'actualAmount', // สำหรับ deposit
       key: 'amount',
-      render: (a: string) => <Text type="success" strong>+{Number(a).toLocaleString()} ฿</Text>
+      render: (a: any, record: any) => {
+        // Fallback for withdrawal or other types if fields differ
+        const amount = a || record.amount || record.requestedAmount || 0;
+        return <Text type="success" strong>+{Number(amount).toLocaleString()} ฿</Text>;
+      }
     },
     {
       title: 'Status',
       dataIndex: 'status',
       key: 'status',
-      render: (s: string) => {
+      render: (s: any) => {
+        const status = String(s || 'pending').toLowerCase();
         let color = 'default';
-        if (s === 'confirmed' || s === 'completed') color = 'success';
-        if (s === 'pending') color = 'processing';
-        if (s === 'rejected' || s === 'expired') color = 'error';
-        return <Tag color={color}>{s.toUpperCase()}</Tag>;
+        if (status === 'confirmed' || status === 'completed' || status === 'success') color = 'success';
+        if (status === 'pending') color = 'processing';
+        if (status === 'rejected' || status === 'expired' || status === 'failed') color = 'error';
+        return <Tag color={color}>{status.toUpperCase()}</Tag>;
       }
     },
   ];
+
+  // Safe transaction data
+  const safeTransactions = Array.isArray(transactions) ? transactions : [];
 
   return (
     <Layout>
@@ -371,9 +371,9 @@ export default function WalletPage() {
                 children: (
                   <Table
                     columns={columns}
-                    dataSource={transactions}
+                    dataSource={safeTransactions}
                     rowKey="id"
-                    loading={loading}
+                    loading={isWalletLoading}
                     pagination={{ pageSize: 10 }}
                   />
                 ),
