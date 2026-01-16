@@ -57,7 +57,7 @@ export class RoomsService {
 
   async create(userId: string, dto: CreateRoomDto) {
     // Get global fee percentage from settings (value could be number or {value: number})
-    const feeConfig = this.settings.get('fee_percentage', 10);
+    const feeConfig: any = this.settings.get('fee_percentage', 10);
     const feePercentage = typeof feeConfig === 'object' && feeConfig !== null
       ? Number(feeConfig.value) || 10
       : Number(feeConfig) || 10;
