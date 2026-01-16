@@ -32,8 +32,12 @@ class WebSocketService {
       (typeof window !== 'undefined' ? window.location.origin : undefined) ||
       'http://localhost:8002';
 
-    this.socket = io(wsUrl, {
+    // ถ้าใช้ /ws proxy path ต้องกำหนด path สำหรับ socket.io
+    const isProxyPath = wsUrl.includes('/ws');
+
+    this.socket = io(isProxyPath ? wsUrl.replace('/ws', '') : wsUrl, {
       auth: { token },
+      path: isProxyPath ? '/ws/socket.io' : '/socket.io',
       reconnection: true,
       reconnectionAttempts: Number(import.meta.env.VITE_WS_RECONNECT_ATTEMPTS) || 5,
       reconnectionDelay: Number(import.meta.env.VITE_WS_RECONNECT_DELAY) || 3000,
