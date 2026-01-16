@@ -22,6 +22,7 @@ import { PayoutModule } from './payout/payout.module';
 import { DepositModule } from './deposit/deposit.module';
 import { VipModule } from './vip/vip.module';
 import { FraudModule } from './fraud/fraud.module';
+import { StreamingModule } from './streaming/streaming.module';
 
 @Module({
   imports: [
@@ -71,6 +72,7 @@ import { FraudModule } from './fraud/fraud.module';
     DepositModule,
     VipModule,
     FraudModule,
+    StreamingModule,
   ],
   providers: [
     {
