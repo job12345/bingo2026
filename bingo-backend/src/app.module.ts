@@ -21,6 +21,7 @@ import { TournamentModule } from './tournament/tournament.module';
 import { PayoutModule } from './payout/payout.module';
 import { DepositModule } from './deposit/deposit.module';
 import { VipModule } from './vip/vip.module';
+import { FraudModule } from './fraud/fraud.module';
 
 @Module({
   imports: [
@@ -69,6 +70,7 @@ import { VipModule } from './vip/vip.module';
     PayoutModule,
     DepositModule,
     VipModule,
+    FraudModule,
   ],
   providers: [
     {

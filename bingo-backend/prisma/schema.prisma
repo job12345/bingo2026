@@ -614,4 +614,50 @@ model DepositRequest {
   @@map("deposit_requests")
 }
 
+// ------------------------------------------
+// Fraud Detection
+// ------------------------------------------
+
+enum FraudAlertType {
+  multiple_accounts
+  unusual_withdrawal
+  suspicious_betting
+  rapid_deposits
+  ip_anomaly
+  device_anomaly
+}
+
+enum FraudAlertStatus {
+  pending
+  reviewed
+  confirmed
+  dismissed
+}
+
+model FraudAlert {
+  id          String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId      String           @map("user_id") @db.Uuid
+  type        FraudAlertType
+  status      FraudAlertStatus @default(pending)
+  severity    Int              @default(1) // 1-5 scale
+  description String
+  metadata    Json?            // Additional details
+  ipAddress   String?          @map("ip_address")
+  userAgent   String?          @map("user_agent")
+  
+  // Review
+  reviewedAt  DateTime?        @map("reviewed_at")
+  reviewedBy  String?          @map("reviewed_by") @db.Uuid
+  reviewNotes String?          @map("review_notes")
+  
+  createdAt   DateTime         @default(now()) @map("created_at")
+  
+  @@index([userId])
+  @@index([type])
+  @@index([status])
+  @@index([createdAt])
+  @@map("fraud_alerts")
+}
+
+
 
