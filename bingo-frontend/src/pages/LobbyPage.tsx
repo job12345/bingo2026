@@ -312,7 +312,7 @@ export default function LobbyPage() {
           layout="vertical"
           onFinish={handleCreateRoom}
           initialValues={{
-            drawMode: DrawMode.AUTO,
+            drawMode: DrawMode.auto,
             ballSet: BallSet.BALL_75,
             maxPlayers: 10,
             maxRounds: 5,
@@ -348,8 +348,8 @@ export default function LobbyPage() {
             <Col span={12}>
               <Form.Item name="drawMode" label="โหมดจับฉลาก" rules={[{ required: true }]}>
                 <Select size="large">
-                  <Select.Option value={DrawMode.AUTO}>อัตโนมัติ</Select.Option>
-                  <Select.Option value={DrawMode.MANUAL_ROTATE}>หมุนเอง</Select.Option>
+                  <Select.Option value={DrawMode.auto}>อัตโนมัติ</Select.Option>
+                  <Select.Option value={DrawMode.manual_rotate}>หมุนเอง</Select.Option>
                 </Select>
               </Form.Item>
             </Col>
