@@ -53,9 +53,12 @@ export const useWalletStore = create<WalletState>((set, get) => ({
   fetchTransactions: async (page = 1, limit = 20) => {
     try {
       set({ isLoading: true, error: null });
-      const { items } = await WalletService.getTransactions(page, limit);
-      set({ transactions: items, isLoading: false });
+      const response = await WalletService.getTransactions(page, limit) as any;
+      // Handle various response structures (backend uses 'transactions', types use 'data')
+      const list = response.transactions || response.data || response.items || [];
+      set({ transactions: list, isLoading: false });
     } catch (error: any) {
+      console.error('Fetch transactions error:', error);
       set({ error: error.message, isLoading: false });
     }
   },

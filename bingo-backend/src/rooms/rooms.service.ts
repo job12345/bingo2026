@@ -56,14 +56,16 @@ export class RoomsService {
   }
 
   async create(userId: string, dto: CreateRoomDto) {
-    // Get global fee percentage from settings
-    const feeConfig = this.settings.get('fee_percentage', { value: 10 });
-    const feePercentage = Number(feeConfig.value);
+    // Get global fee percentage from settings (value could be number or {value: number})
+    const feeConfig = this.settings.get('fee_percentage', 10);
+    const feePercentage = typeof feeConfig === 'object' && feeConfig !== null
+      ? Number(feeConfig.value) || 10
+      : Number(feeConfig) || 10;
 
     return this.prisma.room.create({
       data: {
         name: dto.name,
-        creatorId: userId,
+        creator: { connect: { id: userId } },
         drawMode: dto.drawMode,
         ballSet: dto.ballSet,
         maxPlayers: dto.maxPlayers,
