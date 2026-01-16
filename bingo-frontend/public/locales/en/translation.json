@@ -1,0 +1,123 @@
+{
+    "common": {
+        "loading": "Loading...",
+        "error": "An error occurred",
+        "success": "Success",
+        "cancel": "Cancel",
+        "confirm": "Confirm",
+        "save": "Save",
+        "back": "Back",
+        "next": "Next",
+        "submit": "Submit",
+        "close": "Close",
+        "yes": "Yes",
+        "no": "No",
+        "or": "or",
+        "points": "Points"
+    },
+    "nav": {
+        "home": "Home",
+        "lobby": "Lobby",
+        "profile": "Profile",
+        "wallet": "Wallet",
+        "leaderboard": "Leaderboard",
+        "settings": "Settings",
+        "logout": "Logout"
+    },
+    "auth": {
+        "login": "Login",
+        "register": "Register",
+        "loginWith": "Login with",
+        "phone": "Phone Number",
+        "password": "Password",
+        "confirmPassword": "Confirm Password",
+        "displayName": "Display Name",
+        "forgotPassword": "Forgot Password?",
+        "noAccount": "Don't have an account?",
+        "haveAccount": "Already have an account?",
+        "loginSuccess": "Login successful",
+        "registerSuccess": "Registration successful"
+    },
+    "landing": {
+        "title": "Bingo Party Enterprise",
+        "subtitle": "Online Bingo Game - Win Real Prizes!",
+        "playNow": "Play Now",
+        "howToPlay": "How to Play",
+        "features": {
+            "title": "Why Choose Us?",
+            "realtime": "Real-time Gameplay",
+            "fairPlay": "Fair & Transparent System",
+            "withdraw": "Real Cash Withdrawals"
+        }
+    },
+    "lobby": {
+        "title": "Lobby",
+        "createRoom": "Create Room",
+        "joinRoom": "Join Room",
+        "noRooms": "No rooms available",
+        "players": "Players",
+        "cardPrice": "Card Price",
+        "fee": "Fee"
+    },
+    "game": {
+        "buyCard": "Buy Card",
+        "bingo": "BINGO!",
+        "waiting": "Waiting for players...",
+        "starting": "Game is starting...",
+        "drawing": "Drawing numbers...",
+        "currentBall": "Current Ball",
+        "drawnNumbers": "Drawn Numbers",
+        "yourCards": "Your Cards",
+        "potSize": "Pot Size",
+        "winner": "Winner",
+        "youWin": "You Win!",
+        "patterns": {
+            "horizontal": "Horizontal",
+            "vertical": "Vertical",
+            "diagonal": "Diagonal",
+            "fourCorners": "Four Corners",
+            "fullHouse": "Full House"
+        }
+    },
+    "wallet": {
+        "balance": "Balance",
+        "deposit": "Deposit",
+        "withdraw": "Withdraw",
+        "history": "Transaction History",
+        "depositMethods": {
+            "bank": "Bank Transfer",
+            "crypto": "Crypto",
+            "promptpay": "PromptPay"
+        },
+        "minDeposit": "Minimum Deposit",
+        "minWithdraw": "Minimum Withdraw"
+    },
+    "leaderboard": {
+        "title": "Leaderboard",
+        "daily": "Daily",
+        "weekly": "Weekly",
+        "allTime": "All Time",
+        "rank": "Rank",
+        "player": "Player",
+        "wins": "Wins",
+        "totalWon": "Total Won"
+    },
+    "referral": {
+        "title": "Refer Friends",
+        "yourCode": "Your Code",
+        "invited": "Friends Invited",
+        "earned": "Total Earned",
+        "copyCode": "Copy Code",
+        "shareLink": "Share Link",
+        "signupBonus": "Signup Bonus",
+        "activityBonus": "Activity Bonus"
+    },
+    "settings": {
+        "title": "Settings",
+        "language": "Language",
+        "sound": "Sound",
+        "notifications": "Notifications",
+        "theme": "Theme",
+        "profile": "Edit Profile"
+    }
+}

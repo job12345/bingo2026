@@ -1,0 +1,123 @@
+{
+    "common": {
+        "loading": "กำลังโหลด...",
+        "error": "เกิดข้อผิดพลาด",
+        "success": "สำเร็จ",
+        "cancel": "ยกเลิก",
+        "confirm": "ยืนยัน",
+        "save": "บันทึก",
+        "back": "กลับ",
+        "next": "ถัดไป",
+        "submit": "ส่ง",
+        "close": "ปิด",
+        "yes": "ใช่",
+        "no": "ไม่",
+        "or": "หรือ",
+        "points": "พ้อยท์"
+    },
+    "nav": {
+        "home": "หน้าแรก",
+        "lobby": "ล็อบบี้",
+        "profile": "โปรไฟล์",
+        "wallet": "กระเป๋าเงิน",
+        "leaderboard": "อันดับ",
+        "settings": "ตั้งค่า",
+        "logout": "ออกจากระบบ"
+    },
+    "auth": {
+        "login": "เข้าสู่ระบบ",
+        "register": "สมัครสมาชิก",
+        "loginWith": "เข้าสู่ระบบด้วย",
+        "phone": "เบอร์โทรศัพท์",
+        "password": "รหัสผ่าน",
+        "confirmPassword": "ยืนยันรหัสผ่าน",
+        "displayName": "ชื่อที่แสดง",
+        "forgotPassword": "ลืมรหัสผ่าน?",
+        "noAccount": "ยังไม่มีบัญชี?",
+        "haveAccount": "มีบัญชีแล้ว?",
+        "loginSuccess": "เข้าสู่ระบบสำเร็จ",
+        "registerSuccess": "สมัครสมาชิกสำเร็จ"
+    },
+    "landing": {
+        "title": "Bingo Party Enterprise",
+        "subtitle": "เกมบิงโกออนไลน์ ลุ้นรางวัลสุดมันส์!",
+        "playNow": "เล่นเลย",
+        "howToPlay": "วิธีเล่น",
+        "features": {
+            "title": "ทำไมต้องเรา?",
+            "realtime": "เล่นเกมแบบ Real-time",
+            "fairPlay": "ระบบโปร่งใส ป้องกันโกง",
+            "withdraw": "ถอนเงินได้จริง"
+        }
+    },
+    "lobby": {
+        "title": "ล็อบบี้",
+        "createRoom": "สร้างห้อง",
+        "joinRoom": "เข้าร่วมห้อง",
+        "noRooms": "ไม่มีห้องในขณะนี้",
+        "players": "ผู้เล่น",
+        "cardPrice": "ราคาการ์ด",
+        "fee": "ค่าธรรมเนียม"
+    },
+    "game": {
+        "buyCard": "ซื้อการ์ด",
+        "bingo": "บิงโก!",
+        "waiting": "รอผู้เล่น...",
+        "starting": "เกมกำลังเริ่ม...",
+        "drawing": "กำลังจับเลข...",
+        "currentBall": "เลขปัจจุบัน",
+        "drawnNumbers": "เลขที่ออกแล้ว",
+        "yourCards": "การ์ดของคุณ",
+        "potSize": "เงินรางวัล",
+        "winner": "ผู้ชนะ",
+        "youWin": "คุณชนะ!",
+        "patterns": {
+            "horizontal": "แนวนอน",
+            "vertical": "แนวตั้ง",
+            "diagonal": "แนวทแยง",
+            "fourCorners": "สี่มุม",
+            "fullHouse": "เต็มใบ"
+        }
+    },
+    "wallet": {
+        "balance": "ยอดเงินคงเหลือ",
+        "deposit": "ฝากเงิน",
+        "withdraw": "ถอนเงิน",
+        "history": "ประวัติธุรกรรม",
+        "depositMethods": {
+            "bank": "โอนผ่านธนาคาร",
+            "crypto": "คริปโต",
+            "promptpay": "พร้อมเพย์"
+        },
+        "minDeposit": "ฝากขั้นต่ำ",
+        "minWithdraw": "ถอนขั้นต่ำ"
+    },
+    "leaderboard": {
+        "title": "อันดับ",
+        "daily": "รายวัน",
+        "weekly": "รายสัปดาห์",
+        "allTime": "ตลอดกาล",
+        "rank": "อันดับ",
+        "player": "ผู้เล่น",
+        "wins": "ชนะ",
+        "totalWon": "เงินที่ชนะ"
+    },
+    "referral": {
+        "title": "ชวนเพื่อน",
+        "yourCode": "รหัสของคุณ",
+        "invited": "ชวนไปแล้ว",
+        "earned": "ได้รับแล้ว",
+        "copyCode": "คัดลอกรหัส",
+        "shareLink": "แชร์ลิงก์",
+        "signupBonus": "โบนัสลงทะเบียน",
+        "activityBonus": "โบนัสกิจกรรม"
+    },
+    "settings": {
+        "title": "ตั้งค่า",
+        "language": "ภาษา",
+        "sound": "เสียง",
+        "notifications": "การแจ้งเตือน",
+        "theme": "ธีม",
+        "profile": "แก้ไขโปรไฟล์"
+    }
+}
