@@ -159,106 +159,223 @@ export class DepositService {
 
     /**
      * Get pending deposits (Admin)
+     * ดึงจากทั้ง DepositRequest และ Transaction tables
      */
     async getPendingDeposits() {
-        return this.prisma.depositRequest.findMany({
+        // Fetch from DepositRequest table
+        const depositRequests: any[] = await this.prisma.depositRequest.findMany({
             where: { status: DepositStatus.pending },
             orderBy: { createdAt: 'asc' },
         });
+
+        // Fetch from Transaction table (wallet deposits)
+        const walletDeposits = await this.prisma.transaction.findMany({
+            where: {
+                type: 'deposit',
+                status: 'pending',
+            },
+            include: {
+                user: {
+                    select: { displayName: true, phoneNumber: true },
+                },
+            },
+            orderBy: { createdAt: 'asc' },
+        });
+
+        // Map DepositRequest to common format
+        const formattedDepositRequests = depositRequests.map((d: any) => ({
+            id: d.id,
+            userId: d.userId,
+            userDisplayName: 'User',
+            userPhone: '-',
+            method: d.method,
+            requestedAmount: d.requestedAmount?.toString() || '0',
+            actualAmount: d.actualAmount?.toString() || '0',
+            status: d.status,
+            createdAt: d.createdAt?.toISOString() || new Date().toISOString(),
+            source: 'deposit_request',
+        }));
+
+        // Map Transaction to common format
+        const formattedWalletDeposits = walletDeposits.map((t) => ({
+            id: t.id,
+            userId: t.userId,
+            userDisplayName: t.user?.displayName || 'Unknown',
+            userPhone: t.user?.phoneNumber || '-',
+            method: 'wallet',
+            requestedAmount: t.amount.toString(),
+            actualAmount: t.amount.toString(),
+            paymentSlipUrl: t.paymentSlipUrl,
+            notes: t.notes,
+            status: t.status,
+            createdAt: t.createdAt.toISOString(),
+            source: 'transaction',
+        }));
+
+        // Merge and sort by date
+        const allPending = [...formattedDepositRequests, ...formattedWalletDeposits];
+        allPending.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+
+        return allPending;
     }
 
     /**
      * Approve deposit and add points (Admin)
+     * รองรับทั้ง DepositRequest และ Transaction tables
      */
     async approveDeposit(depositId: string, adminId: string) {
-        const deposit = await this.prisma.depositRequest.findUnique({
+        // ลองหาใน DepositRequest ก่อน
+        const depositRequest = await this.prisma.depositRequest.findUnique({
             where: { id: depositId },
         });
 
-        if (!deposit) {
-            throw new NotFoundException('ไม่พบรายการฝากเงิน');
-        }
+        if (depositRequest) {
+            // เป็น DepositRequest
+            if (depositRequest.status !== DepositStatus.pending) {
+                throw new BadRequestException('รายการนี้ถูกดำเนินการแล้ว');
+            }
 
-        if (deposit.status !== DepositStatus.pending) {
-            throw new BadRequestException('รายการนี้ถูกดำเนินการแล้ว');
-        }
-
-        // Update deposit and add points
-        await this.prisma.$transaction(async (tx) => {
-            // Update deposit status
-            await tx.depositRequest.update({
-                where: { id: depositId },
-                data: {
-                    status: DepositStatus.confirmed,
-                    confirmedAt: new Date(),
-                    approvedBy: adminId,
-                },
-            });
-
-            // Get user current balance
-            const user = await tx.user.findUnique({
-                where: { id: deposit.userId },
-                select: { pointBalance: true },
-            });
-
-            const balanceBefore = new Decimal(user!.pointBalance);
-            const depositAmount = new Decimal(deposit.requestedAmount); // Use requested, not actual
-            const balanceAfter = balanceBefore.add(depositAmount);
-
-            // Update user balance
-            await tx.user.update({
-                where: { id: deposit.userId },
-                data: { pointBalance: balanceAfter },
-            });
-
-            // Create transaction record
-            await tx.transaction.create({
-                data: {
-                    userId: deposit.userId,
-                    type: TransactionType.deposit,
-                    amount: depositAmount,
-                    status: TransactionStatus.completed,
-                    balanceBefore,
-                    balanceAfter,
-                    metadata: {
-                        depositId,
-                        method: deposit.method,
-                        actualAmount: deposit.actualAmount.toString(),
+            await this.prisma.$transaction(async (tx) => {
+                await tx.depositRequest.update({
+                    where: { id: depositId },
+                    data: {
+                        status: DepositStatus.confirmed,
+                        confirmedAt: new Date(),
+                        approvedBy: adminId,
                     },
-                    notes: `ฝากเงินผ่าน ${deposit.method}`,
-                },
+                });
+
+                const user = await tx.user.findUnique({
+                    where: { id: depositRequest.userId },
+                    select: { pointBalance: true },
+                });
+
+                const balanceBefore = new Decimal(user!.pointBalance);
+                const depositAmount = new Decimal(depositRequest.requestedAmount);
+                const balanceAfter = balanceBefore.add(depositAmount);
+
+                await tx.user.update({
+                    where: { id: depositRequest.userId },
+                    data: { pointBalance: balanceAfter },
+                });
+
+                await tx.transaction.create({
+                    data: {
+                        userId: depositRequest.userId,
+                        type: TransactionType.deposit,
+                        amount: depositAmount,
+                        status: TransactionStatus.completed,
+                        balanceBefore,
+                        balanceAfter,
+                        metadata: {
+                            depositId,
+                            method: depositRequest.method,
+                            actualAmount: depositRequest.actualAmount.toString(),
+                        },
+                        notes: `ฝากเงินผ่าน ${depositRequest.method}`,
+                    },
+                });
             });
+
+            return { message: 'อนุมัติการฝากเงินสำเร็จ' };
+        }
+
+        // ลองหาใน Transaction table (จาก WalletService)
+        const transaction = await this.prisma.transaction.findUnique({
+            where: { id: depositId },
         });
 
-        return { message: 'อนุมัติการฝากเงินสำเร็จ' };
+        if (transaction) {
+            if (transaction.status !== 'pending') {
+                throw new BadRequestException('รายการนี้ถูกดำเนินการแล้ว');
+            }
+
+            if (transaction.type !== 'deposit') {
+                throw new BadRequestException('รายการนี้ไม่ใช่การฝากเงิน');
+            }
+
+            // Approve และเพิ่มยอดเงิน
+            await this.prisma.$transaction(async (tx) => {
+                const user = await tx.user.findUnique({
+                    where: { id: transaction.userId },
+                    select: { pointBalance: true },
+                });
+
+                const balanceBefore = new Decimal(user!.pointBalance);
+                const depositAmount = new Decimal(transaction.amount);
+                const balanceAfter = balanceBefore.add(depositAmount);
+
+                // Update transaction
+                await tx.transaction.update({
+                    where: { id: depositId },
+                    data: {
+                        status: 'completed',
+                        balanceAfter,
+                    },
+                });
+
+                // Update user balance
+                await tx.user.update({
+                    where: { id: transaction.userId },
+                    data: { pointBalance: balanceAfter },
+                });
+            });
+
+            return { message: 'อนุมัติการฝากเงินสำเร็จ' };
+        }
+
+        throw new NotFoundException('ไม่พบรายการฝากเงิน');
     }
 
     /**
      * Reject deposit (Admin)
+     * รองรับทั้ง DepositRequest และ Transaction tables
      */
     async rejectDeposit(depositId: string, adminId: string, reason: string) {
-        const deposit = await this.prisma.depositRequest.findUnique({
+        // ลองหาใน DepositRequest ก่อน
+        const depositRequest = await this.prisma.depositRequest.findUnique({
             where: { id: depositId },
         });
 
-        if (!deposit) {
-            throw new NotFoundException('ไม่พบรายการฝากเงิน');
+        if (depositRequest) {
+            if (depositRequest.status !== DepositStatus.pending) {
+                throw new BadRequestException('รายการนี้ถูกดำเนินการแล้ว');
+            }
+
+            await this.prisma.depositRequest.update({
+                where: { id: depositId },
+                data: {
+                    status: DepositStatus.rejected,
+                    approvedBy: adminId,
+                    notes: reason,
+                },
+            });
+
+            return { message: 'ปฏิเสธการฝากเงินแล้ว' };
         }
 
-        if (deposit.status !== DepositStatus.pending) {
-            throw new BadRequestException('รายการนี้ถูกดำเนินการแล้ว');
-        }
-
-        await this.prisma.depositRequest.update({
+        // ลองหาใน Transaction table
+        const transaction = await this.prisma.transaction.findUnique({
             where: { id: depositId },
-            data: {
-                status: DepositStatus.rejected,
-                approvedBy: adminId,
-                notes: reason,
-            },
         });
 
-        return { message: 'ปฏิเสธการฝากเงินแล้ว' };
+        if (transaction) {
+            if (transaction.status !== 'pending') {
+                throw new BadRequestException('รายการนี้ถูกดำเนินการแล้ว');
+            }
+
+            await this.prisma.transaction.update({
+                where: { id: depositId },
+                data: {
+                    status: 'cancelled',
+                    notes: reason,
+                },
+            });
+
+            return { message: 'ปฏิเสธการฝากเงินแล้ว' };
+        }
+
+        throw new NotFoundException('ไม่พบรายการฝากเงิน');
     }
 
     /**
