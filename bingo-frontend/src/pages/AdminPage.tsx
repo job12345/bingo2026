@@ -83,8 +83,19 @@ export default function AdminPage() {
     activeRooms: 0,
   });
 
-  const [settingsForm] = Form.useForm();
+  // OAuth Settings State
+  const [oauthSettings, setOauthSettings] = useState({ clientId: '', clientSecret: '', configured: false });
+  const [oauthLoading, setOauthLoading] = useState(false);
 
+  // Telegram Settings State
+  const [telegramSettings, setTelegramSettings] = useState({ botToken: '', chatId: '' });
+  const [telegramLoading, setTelegramLoading] = useState(false);
+
+  const [settingsForm] = Form.useForm();
+  const [oauthForm] = Form.useForm();
+  const [telegramForm] = Form.useForm();
+
+  // =================== Fetch Data ===================
   const fetchData = async () => {
     setLoading(true);
     try {
@@ -108,9 +119,25 @@ export default function AdminPage() {
         console.warn('Failed to fetch settings', err);
       }
 
+      // Fetch OAuth settings
+      try {
+        const oauthRes = await apiClient.get<any>('/admin/settings/oauth');
+        setOauthSettings(oauthRes || { clientId: '', clientSecret: '', configured: false });
+      } catch (err) {
+        console.warn('Failed to fetch OAuth settings', err);
+      }
+
+      // Fetch Telegram settings
+      try {
+        const telegramRes = await apiClient.get<any>('/admin/settings/telegram');
+        setTelegramSettings(telegramRes || { botToken: '', chatId: '' });
+      } catch (err) {
+        console.warn('Failed to fetch Telegram settings', err);
+      }
+
       // Calculate stats
       setStats({
-        totalDeposits: (depositsRes || []).length + 100, // Mock total
+        totalDeposits: (depositsRes || []).length + 100,
         pendingDeposits: (depositsRes || []).filter((d: DepositRequest) => d.status === 'pending').length,
         fraudAlerts: (fraudRes || []).length,
         activeRooms: (roomsRes || []).filter((r: RoomInfo) => r.isActive).length,
@@ -125,6 +152,85 @@ export default function AdminPage() {
   useEffect(() => {
     fetchData();
   }, []);
+
+  // =================== OAuth Handlers ===================
+  const handleSaveOAuth = async (values: any) => {
+    setOauthLoading(true);
+    try {
+      await apiClient.put('/admin/settings/oauth', values);
+      message.success('บันทึกการตั้งค่า OAuth สำเร็จ! (จะมีผลหลัง restart server)');
+      fetchData();
+    } catch (error) {
+      message.error('ไม่สามารถบันทึกได้');
+    } finally {
+      setOauthLoading(false);
+    }
+  };
+
+  const handleTestOAuth = async () => {
+    setOauthLoading(true);
+    try {
+      const res = await apiClient.post<any>('/admin/settings/oauth/test');
+      if (res.success) {
+        message.success(res.message);
+      } else {
+        message.warning(res.message);
+      }
+    } catch (error) {
+      message.error('ไม่สามารถทดสอบได้');
+    } finally {
+      setOauthLoading(false);
+    }
+  };
+
+  // =================== Telegram Handlers ===================
+  const handleSaveTelegram = async (values: any) => {
+    setTelegramLoading(true);
+    try {
+      await apiClient.put('/admin/settings/telegram', values);
+      message.success('บันทึกการตั้งค่า Telegram สำเร็จ!');
+      fetchData();
+    } catch (error) {
+      message.error('ไม่สามารถบันทึกได้');
+    } finally {
+      setTelegramLoading(false);
+    }
+  };
+
+  const handleTestTelegram = async () => {
+    setTelegramLoading(true);
+    try {
+      const chatId = telegramForm.getFieldValue('chatId') || telegramSettings.chatId;
+      const res = await apiClient.post<any>('/admin/settings/telegram/test', { chatId });
+      if (res.success) {
+        message.success(res.message);
+      } else {
+        message.warning(res.message);
+      }
+    } catch (error) {
+      message.error('ไม่สามารถส่งข้อความทดสอบได้');
+    } finally {
+      setTelegramLoading(false);
+    }
+  };
+
+  // =================== Room Handler ===================
+  const handleCloseRoom = async (roomId: string) => {
+    Modal.confirm({
+      title: 'ปิดห้องนี้?',
+      onOk: async () => {
+        try {
+          await apiClient.post(`/admin/rooms/${roomId}/close`);
+          message.success('ปิดห้องสำเร็จ!');
+          fetchData();
+        } catch (error) {
+          message.error('ไม่สามารถปิดห้องได้');
+        }
+      },
+    });
+  };
+
+
 
   const handleApproveDeposit = async (id: string) => {
     try {
@@ -226,8 +332,19 @@ export default function AdminPage() {
 
   const roomColumns = [
     { title: 'Name', dataIndex: 'name', key: 'name' },
-    { title: 'Players', key: 'players', render: (_: any, r: RoomInfo) => `${r.currentPlayers}/${r.maxPlayers}` },
+    { title: 'Players', key: 'players', render: (_: any, r: RoomInfo) => `${r.currentPlayers || 0}/${r.maxPlayers}` },
     { title: 'Status', dataIndex: 'isActive', key: 'status', render: (a: boolean) => <Tag color={a ? 'green' : 'red'}>{a ? 'Active' : 'Inactive'}</Tag> },
+    {
+      title: 'Actions',
+      key: 'actions',
+      render: (_: any, record: RoomInfo) => (
+        record.isActive ? (
+          <Button danger size="small" icon={<CloseOutlined />} onClick={() => handleCloseRoom(record.id)}>
+            ปิดห้อง
+          </Button>
+        ) : null
+      ),
+    },
   ];
 
   const settingsColumns = [
@@ -308,15 +425,70 @@ export default function AdminPage() {
       key: 'settings',
       label: <span>⚙️ ตั้งค่าระบบ</span>,
       children: (
-        <Card title="ตั้งค่าระบบ (Global Configuration)">
-          <Table
-            columns={settingsColumns}
-            dataSource={settings}
-            rowKey="key"
-            loading={loading}
-            pagination={false}
-          />
-        </Card>
+        <Row gutter={[16, 16]}>
+          {/* Google OAuth Settings */}
+          <Col xs={24} md={12}>
+            <Card title="🔐 Google OAuth" extra={oauthSettings.configured ? <Tag color="green">Configured</Tag> : <Tag color="orange">Not Set</Tag>}>
+              <Form form={oauthForm} layout="vertical" onFinish={handleSaveOAuth}>
+                <Form.Item label="Client ID" name="clientId">
+                  <Input placeholder={oauthSettings.clientId || 'ใส่ Google Client ID'} />
+                </Form.Item>
+                <Form.Item label="Client Secret" name="clientSecret">
+                  <Input.Password placeholder={oauthSettings.clientSecret || 'ใส่ Google Client Secret'} />
+                </Form.Item>
+                <Space>
+                  <Button type="primary" htmlType="submit" icon={<SaveOutlined />} loading={oauthLoading}>
+                    บันทึก
+                  </Button>
+                  <Button onClick={handleTestOAuth} loading={oauthLoading}>
+                    ทดสอบเชื่อมต่อ
+                  </Button>
+                </Space>
+              </Form>
+              <Text type="secondary" style={{ display: 'block', marginTop: 8 }}>
+                * หลังบันทึก ค่าจะมีผลหลัง restart server
+              </Text>
+            </Card>
+          </Col>
+
+          {/* Telegram Bot Settings */}
+          <Col xs={24} md={12}>
+            <Card title="📱 Telegram Bot" extra={telegramSettings.botToken ? <Tag color="green">Configured</Tag> : <Tag color="orange">Not Set</Tag>}>
+              <Form form={telegramForm} layout="vertical" onFinish={handleSaveTelegram}>
+                <Form.Item label="Bot Token" name="botToken">
+                  <Input.Password placeholder={telegramSettings.botToken || 'ใส่ Bot Token จาก @BotFather'} />
+                </Form.Item>
+                <Form.Item label="Chat ID" name="chatId">
+                  <Input placeholder={String(telegramSettings.chatId || '')} />
+                </Form.Item>
+                <Space>
+                  <Button type="primary" htmlType="submit" icon={<SaveOutlined />} loading={telegramLoading}>
+                    บันทึก
+                  </Button>
+                  <Button onClick={handleTestTelegram} loading={telegramLoading}>
+                    ทดสอบส่งข้อความ
+                  </Button>
+                </Space>
+              </Form>
+              <Text type="secondary" style={{ display: 'block', marginTop: 8 }}>
+                * Telegram ใช้แจ้งเมื่อมีคนฝากเงิน
+              </Text>
+            </Card>
+          </Col>
+
+          {/* System Settings Table */}
+          <Col span={24}>
+            <Card title="ตั้งค่าอื่นๆ (Global Configuration)">
+              <Table
+                columns={settingsColumns}
+                dataSource={settings}
+                rowKey="key"
+                loading={loading}
+                pagination={false}
+              />
+            </Card>
+          </Col>
+        </Row>
       ),
     },
   ];
