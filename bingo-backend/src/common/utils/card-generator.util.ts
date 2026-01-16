@@ -191,6 +191,71 @@ export class CardGeneratorUtil {
   }
 
   /**
+   * ตรวจสอบ Pattern บนการ์ด 90-Ball
+   * Patterns: line_1, line_2, line_3, two_lines, full_house
+   */
+  static checkPattern90Ball(
+    card: (number | null)[][],
+    drawnNumbers: number[],
+    pattern: string,
+  ): { isValid: boolean; missingNumbers?: number[] } {
+    const drawnSet = new Set(drawnNumbers);
+    const missingNumbers: number[] = [];
+
+    // Check which rows to validate based on pattern
+    let rowsToCheck: number[] = [];
+
+    switch (pattern) {
+      case 'line_1':
+        rowsToCheck = [0];
+        break;
+      case 'line_2':
+        rowsToCheck = [1];
+        break;
+      case 'line_3':
+        rowsToCheck = [2];
+        break;
+      case 'two_lines':
+        // Any 2 lines - check if at least 2 rows are complete
+        const completedRows = [];
+        for (let row = 0; row < 3; row++) {
+          const rowComplete = card[row].every((num) => num === null || drawnSet.has(num));
+          if (rowComplete) completedRows.push(row);
+        }
+        if (completedRows.length >= 2) {
+          return { isValid: true };
+        }
+        // Find missing numbers from first 2 incomplete rows
+        for (let row = 0; row < 3 && rowsToCheck.length < 2; row++) {
+          const rowComplete = card[row].every((num) => num === null || drawnSet.has(num));
+          if (!rowComplete) rowsToCheck.push(row);
+        }
+        break;
+      case 'full_house':
+        rowsToCheck = [0, 1, 2];
+        break;
+      default:
+        return { isValid: false };
+    }
+
+    // Validate selected rows
+    for (const row of rowsToCheck) {
+      for (let col = 0; col < 9; col++) {
+        const num = card[row][col];
+        if (num === null) continue; // Empty cell
+        if (!drawnSet.has(num)) {
+          missingNumbers.push(num);
+        }
+      }
+    }
+
+    return {
+      isValid: missingNumbers.length === 0,
+      missingNumbers: missingNumbers.length > 0 ? missingNumbers : undefined,
+    };
+  }
+
+  /**
    * Helper: สุ่มเลขไม่ซ้ำ
    */
   private static getRandomNumbers(min: number, max: number, count: number): number[] {
