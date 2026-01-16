@@ -20,6 +20,7 @@ import { ReferralModule } from './referral/referral.module';
 import { TournamentModule } from './tournament/tournament.module';
 import { PayoutModule } from './payout/payout.module';
 import { DepositModule } from './deposit/deposit.module';
+import { VipModule } from './vip/vip.module';
 
 @Module({
   imports: [
@@ -67,6 +68,7 @@ import { DepositModule } from './deposit/deposit.module';
     TournamentModule,
     PayoutModule,
     DepositModule,
+    VipModule,
   ],
   providers: [
     {

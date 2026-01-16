@@ -106,6 +106,11 @@ model User {
   totalSpent       Decimal @default(0.00) @map("total_spent") @db.Decimal(12, 2)
   totalWon         Decimal @default(0.00) @map("total_won") @db.Decimal(12, 2)
 
+  // VIP System
+  vipLevel         VipLevel @default(bronze) @map("vip_level")
+  vipPoints        Int      @default(0) @map("vip_points")
+  vipExpiredAt     DateTime? @map("vip_expired_at")
+
   // Security
   isBanned     Boolean   @default(false) @map("is_banned")
   bannedReason String?   @map("banned_reason")
@@ -559,6 +564,13 @@ enum DepositStatus {
   confirmed
   rejected
   expired
+}
+
+enum VipLevel {
+  bronze
+  silver
+  gold
+  platinum
 }
 
 model DepositRequest {
