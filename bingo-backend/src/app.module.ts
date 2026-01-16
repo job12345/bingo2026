@@ -16,6 +16,7 @@ import { TelegramModule } from './common/telegram/telegram.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { HealthModule } from './health/health.module';
 import { LeaderboardModule } from './leaderboard/leaderboard.module';
+import { ReferralModule } from './referral/referral.module';
 
 @Module({
   imports: [
@@ -59,6 +60,7 @@ import { LeaderboardModule } from './leaderboard/leaderboard.module';
     BotModule,
     HealthModule,
     LeaderboardModule,
+    ReferralModule,
   ],
   providers: [
     {
