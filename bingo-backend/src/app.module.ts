@@ -23,6 +23,7 @@ import { DepositModule } from './deposit/deposit.module';
 import { VipModule } from './vip/vip.module';
 import { FraudModule } from './fraud/fraud.module';
 import { StreamingModule } from './streaming/streaming.module';
+import { SettingsModule } from './settings/settings.module';
 
 @Module({
   imports: [
@@ -53,6 +54,7 @@ import { StreamingModule } from './streaming/streaming.module';
     PrismaModule,
 
     // Common Modules (Global)
+    SettingsModule,
     TelegramModule,
 
     // Feature Modules

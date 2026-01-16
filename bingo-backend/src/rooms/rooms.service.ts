@@ -2,10 +2,14 @@ import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/commo
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateRoomDto } from './dto/create-room.dto';
 import { UpdateRoomDto } from './dto/update-room.dto';
+import { SettingsService } from '../settings/settings.service';
 
 @Injectable()
 export class RoomsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly settings: SettingsService,
+  ) { }
 
   async findAll() {
     return this.prisma.room.findMany({
@@ -52,6 +56,10 @@ export class RoomsService {
   }
 
   async create(userId: string, dto: CreateRoomDto) {
+    // Get global fee percentage from settings
+    const feeConfig = this.settings.get('fee_percentage', { value: 10 });
+    const feePercentage = Number(feeConfig.value);
+
     return this.prisma.room.create({
       data: {
         name: dto.name,
@@ -62,7 +70,7 @@ export class RoomsService {
         maxRounds: dto.maxRounds,
         cardPrice: dto.cardPrice,
         maxCardsPerPlayer: dto.maxCardsPerPlayer || 4,
-        feePercentage: dto.feePercentage || 5,
+        feePercentage: feePercentage,
         isActive: true,
         currentRound: 1,
         totalRoundsPlayed: 0,

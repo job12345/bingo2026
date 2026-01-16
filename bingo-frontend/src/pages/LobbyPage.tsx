@@ -318,7 +318,7 @@ export default function LobbyPage() {
             maxRounds: 5,
             cardPrice: 10,
             maxCardsPerPlayer: 4,
-            feePercentage: 5,
+
           }}
         >
           <Form.Item
@@ -388,20 +388,6 @@ export default function LobbyPage() {
               </Form.Item>
             </Col>
           </Row>
-
-          <Form.Item
-            name="feePercentage"
-            label="ค่าธรรมเนียม (%)"
-            rules={[{ required: true }]}
-          >
-            <InputNumber
-              min={0}
-              max={20}
-              size="large"
-              style={{ width: '100%' }}
-              addonAfter="%"
-            />
-          </Form.Item>
 
           <Form.Item style={{ marginBottom: 0 }}>
             <Space style={{ width: '100%', justifyContent: 'flex-end' }}>

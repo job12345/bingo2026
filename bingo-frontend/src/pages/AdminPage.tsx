@@ -14,6 +14,8 @@ import {
   message,
   Modal,
   Badge,
+  Input,
+  Form,
 } from 'antd';
 import {
   CheckOutlined,
@@ -23,10 +25,12 @@ import {
   PlayCircleOutlined,
   WarningOutlined,
   ReloadOutlined,
+  SettingOutlined,
+  SaveOutlined,
 } from '@ant-design/icons';
 import { apiClient } from '@/services/api';
 
-const { Title } = Typography;
+const { Title, Text } = Typography;
 
 interface DepositRequest {
   id: string;
@@ -56,6 +60,13 @@ interface RoomInfo {
   isActive: boolean;
 }
 
+interface SystemSetting {
+  key: string;
+  value: any;
+  description: string;
+  updatedAt: string;
+}
+
 /**
  * Admin Dashboard - สำหรับจัดการระบบ
  */
@@ -64,12 +75,15 @@ export default function AdminPage() {
   const [pendingDeposits, setPendingDeposits] = useState<DepositRequest[]>([]);
   const [fraudAlerts, setFraudAlerts] = useState<FraudAlert[]>([]);
   const [activeRooms, setActiveRooms] = useState<RoomInfo[]>([]);
+  const [settings, setSettings] = useState<SystemSetting[]>([]);
   const [stats, setStats] = useState({
     totalDeposits: 0,
     pendingDeposits: 0,
     fraudAlerts: 0,
     activeRooms: 0,
   });
+
+  const [settingsForm] = Form.useForm();
 
   const fetchData = async () => {
     setLoading(true);
@@ -86,9 +100,17 @@ export default function AdminPage() {
       const roomsRes = await apiClient.get<RoomInfo[]>('/rooms');
       setActiveRooms(roomsRes || []);
 
+      // Fetch settings
+      try {
+        const settingsRes = await apiClient.get<SystemSetting[]>('/settings');
+        setSettings(settingsRes || []);
+      } catch (err) {
+        console.warn('Failed to fetch settings', err);
+      }
+
       // Calculate stats
       setStats({
-        totalDeposits: pendingDeposits.length + 100, // Mock total
+        totalDeposits: (depositsRes || []).length + 100, // Mock total
         pendingDeposits: (depositsRes || []).filter((d: DepositRequest) => d.status === 'pending').length,
         fraudAlerts: (fraudRes || []).length,
         activeRooms: (roomsRes || []).filter((r: RoomInfo) => r.isActive).length,
@@ -136,6 +158,16 @@ export default function AdminPage() {
       fetchData();
     } catch (error) {
       message.error('ไม่สามารถบันทึกได้');
+    }
+  };
+
+  const handleUpdateSetting = async (key: string, value: string) => {
+    try {
+      await apiClient.put('/settings', { key, value: Number(value) }); // Assuming numeric values for now (percent, amounts)
+      message.success('อัพเดทตั้งค่าสำเร็จ!');
+      fetchData();
+    } catch (error) {
+      message.error('ไม่สามารถอัพเดทค่าได้');
     }
   };
 
@@ -198,6 +230,32 @@ export default function AdminPage() {
     { title: 'Status', dataIndex: 'isActive', key: 'status', render: (a: boolean) => <Tag color={a ? 'green' : 'red'}>{a ? 'Active' : 'Inactive'}</Tag> },
   ];
 
+  const settingsColumns = [
+    { title: 'Key', dataIndex: 'key', key: 'key', render: (k: string) => <Tag>{k}</Tag> },
+    { title: 'Description', dataIndex: 'description', key: 'desc' },
+    {
+      title: 'Value',
+      dataIndex: 'value',
+      key: 'value',
+      render: (val: any, record: SystemSetting) => (
+        <Space>
+          <Input
+            defaultValue={val}
+            style={{ width: 120 }}
+            onBlur={(e) => {
+              if (e.target.value !== String(val)) {
+                handleUpdateSetting(record.key, e.target.value);
+              }
+            }}
+            onPressEnter={(e: any) => handleUpdateSetting(record.key, e.target.value)}
+          />
+          <Text type="secondary">(Click out/Enter to save)</Text>
+        </Space>
+      )
+    },
+    { title: 'Last Updated', dataIndex: 'updatedAt', key: 'updatedAt', render: (d: string) => new Date(d).toLocaleString('th-TH') },
+  ];
+
   const tabItems = [
     {
       key: 'deposits',
@@ -244,6 +302,21 @@ export default function AdminPage() {
           loading={loading}
           pagination={{ pageSize: 10 }}
         />
+      ),
+    },
+    {
+      key: 'settings',
+      label: <span>⚙️ ตั้งค่าระบบ</span>,
+      children: (
+        <Card title="ตั้งค่าระบบ (Global Configuration)">
+          <Table
+            columns={settingsColumns}
+            dataSource={settings}
+            rowKey="key"
+            loading={loading}
+            pagination={false}
+          />
+        </Card>
       ),
     },
   ];
