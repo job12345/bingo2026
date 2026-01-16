@@ -544,3 +544,62 @@ model TournamentParticipant {
   @@map("tournament_participants")
 }
 
+// ------------------------------------------
+// Payment Gateway
+// ------------------------------------------
+
+enum DepositMethod {
+  bank_transfer
+  crypto
+  promptpay
+}
+
+enum DepositStatus {
+  pending
+  confirmed
+  rejected
+  expired
+}
+
+model DepositRequest {
+  id            String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId        String        @map("user_id") @db.Uuid
+  method        DepositMethod
+  
+  // Amount
+  requestedAmount Decimal     @map("requested_amount") @db.Decimal(12, 2)
+  actualAmount    Decimal     @map("actual_amount") @db.Decimal(12, 2) // รวมสตางค์สุ่ม
+  
+  // Status
+  status        DepositStatus @default(pending)
+  
+  // Bank Transfer
+  bankRef       String?       @map("bank_ref") // เลข ref สุ่ม เช่น 500.01
+  targetBank    String?       @map("target_bank") // ธนาคารที่ต้องโอน
+  targetAccount String?       @map("target_account") // เลขบัญชี
+  
+  // Crypto
+  cryptoNetwork String?       @map("crypto_network") // BSC, ETH, etc.
+  cryptoAddress String?       @map("crypto_address") // wallet address
+  cryptoTxHash  String?       @map("crypto_tx_hash") // blockchain tx hash
+  cryptoCurrency String?      @map("crypto_currency") // USDT, BNB, ETH
+  
+  // PromptPay
+  promptPayQR   String?       @map("promptpay_qr") // QR code data
+  
+  // Timestamps
+  createdAt     DateTime      @default(now()) @map("created_at")
+  expiresAt     DateTime?     @map("expires_at") // หมดอายุ (15 นาที)
+  confirmedAt   DateTime?     @map("confirmed_at")
+  approvedBy    String?       @map("approved_by") @db.Uuid
+  
+  // Notes
+  notes         String?
+  
+  @@index([userId])
+  @@index([status])
+  @@index([method])
+  @@map("deposit_requests")
+}
+
+

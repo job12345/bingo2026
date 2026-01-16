@@ -19,6 +19,7 @@ import { LeaderboardModule } from './leaderboard/leaderboard.module';
 import { ReferralModule } from './referral/referral.module';
 import { TournamentModule } from './tournament/tournament.module';
 import { PayoutModule } from './payout/payout.module';
+import { DepositModule } from './deposit/deposit.module';
 
 @Module({
   imports: [
@@ -65,6 +66,7 @@ import { PayoutModule } from './payout/payout.module';
     ReferralModule,
     TournamentModule,
     PayoutModule,
+    DepositModule,
   ],
   providers: [
     {
