@@ -36,7 +36,7 @@ export class PayoutService {
                 pointBalance: true,
                 bankAccountNumber: true,
                 bankName: true,
-                promptPayNumber: true,
+                phoneNumber: true,
             },
         });
 
@@ -61,7 +61,7 @@ export class PayoutService {
                 throw new BadRequestException('กรุณาเพิ่มข้อมูลบัญชีธนาคารก่อนถอนเงิน');
             }
         } else if (method === 'promptpay') {
-            const promptPay = request.promptPayNumber || user.promptPayNumber;
+            const promptPay = request.promptPayNumber || user.phoneNumber;
             if (!promptPay) {
                 throw new BadRequestException('กรุณาเพิ่มเลขพร้อมเพย์ก่อนถอนเงิน');
             }
@@ -128,7 +128,7 @@ export class PayoutService {
                         displayName: true,
                         bankAccountNumber: true,
                         bankName: true,
-                        promptPayNumber: true,
+                        phoneNumber: true,
                     },
                 },
             },
@@ -158,7 +158,6 @@ export class PayoutService {
             where: { id: transactionId },
             data: {
                 status: TransactionStatus.completed,
-                processedAt: new Date(),
             },
         });
 
@@ -204,7 +203,6 @@ export class PayoutService {
                 where: { id: transactionId },
                 data: {
                     status: TransactionStatus.rejected,
-                    processedAt: new Date(),
                     metadata: {
                         ...(transaction.metadata as object),
                         rejectionReason: reason,
