@@ -17,6 +17,7 @@ import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { HealthModule } from './health/health.module';
 import { LeaderboardModule } from './leaderboard/leaderboard.module';
 import { ReferralModule } from './referral/referral.module';
+import { TournamentModule } from './tournament/tournament.module';
 
 @Module({
   imports: [
@@ -61,6 +62,7 @@ import { ReferralModule } from './referral/referral.module';
     HealthModule,
     LeaderboardModule,
     ReferralModule,
+    TournamentModule,
   ],
   providers: [
     {

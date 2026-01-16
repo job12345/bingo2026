@@ -63,6 +63,14 @@ enum BallSet {
   BALL_90  @map("90")
 }
 
+enum TournamentStatus {
+  upcoming
+  registration
+  in_progress
+  completed
+  cancelled
+}
+
 // ==========================================
 // MODELS
 // ==========================================
@@ -484,3 +492,55 @@ model Referral {
   @@index([referrerId])
   @@map("referrals")
 }
+
+// ------------------------------------------
+// Tournament System
+// ------------------------------------------
+
+model Tournament {
+  id            String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name          String
+  description   String?
+  entryFee      Decimal          @map("entry_fee") @db.Decimal(10, 2)
+  prizePool     Decimal          @default(0) @map("prize_pool") @db.Decimal(12, 2)
+  maxPlayers    Int              @map("max_players")
+  currentRound  Int              @default(1) @map("current_round")
+  totalRounds   Int              @map("total_rounds")
+  status        TournamentStatus @default(upcoming)
+  ballSet       BallSet          @default(BALL_75) @map("ball_set")
+  
+  // Prize distribution (JSON: [1st %, 2nd %, 3rd %])
+  prizeDistribution Json?        @map("prize_distribution")
+  
+  startsAt      DateTime         @map("starts_at")
+  endsAt        DateTime?        @map("ends_at")
+  createdAt     DateTime         @default(now()) @map("created_at")
+  updatedAt     DateTime         @updatedAt @map("updated_at")
+  createdById   String?          @map("created_by_id") @db.Uuid
+  
+  participants TournamentParticipant[]
+  
+  @@index([status])
+  @@index([startsAt])
+  @@map("tournaments")
+}
+
+model TournamentParticipant {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tournamentId String   @map("tournament_id") @db.Uuid
+  userId       String   @map("user_id") @db.Uuid
+  score        Int      @default(0)
+  ranking      Int?
+  gamesWon     Int      @default(0) @map("games_won")
+  gamesPlayed  Int      @default(0) @map("games_played")
+  prizeWon     Decimal  @default(0) @map("prize_won") @db.Decimal(10, 2)
+  joinedAt     DateTime @default(now()) @map("joined_at")
+  
+  tournament Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  
+  @@unique([tournamentId, userId])
+  @@index([userId])
+  @@index([tournamentId, score(sort: Desc)])
+  @@map("tournament_participants")
+}
+
