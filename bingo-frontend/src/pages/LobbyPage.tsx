@@ -247,10 +247,15 @@ export default function LobbyPage() {
                       <div style={{ background: 'rgba(255,255,255,0.05)', borderRadius: 10, padding: 12 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'rgba(255,255,255,0.5)', fontSize: 12, marginBottom: 4 }}>
                           <ThunderboltOutlined /> รอบ
-                        </div>
-                        <div style={{ color: '#fff', fontWeight: 600 }}>
-                          <span style={{ fontSize: 20 }}>{room.currentRound}</span>
                           <span style={{ color: 'rgba(255,255,255,0.4)' }}>/{room.maxRounds}</span>
+                        </div>
+                      </div>
+                      <div style={{ background: 'rgba(255,255,255,0.05)', borderRadius: 10, padding: 12, gridColumn: 'span 2' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'rgba(255,255,255,0.5)', fontSize: 12, marginBottom: 4 }}>
+                          <DollarOutlined /> ค่าธรรมเนียม
+                        </div>
+                        <div style={{ color: '#fbbf24', fontWeight: 600, fontSize: 16 }}>
+                          {Number(room.feePercentage)}%
                         </div>
                       </div>
                     </div>
