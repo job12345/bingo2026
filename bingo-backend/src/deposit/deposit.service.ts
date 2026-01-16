@@ -13,7 +13,7 @@ const BANK_CONFIG = {
 const PROMPTPAY_NUMBER = process.env.PROMPTPAY_NUMBER || '0812345678';
 
 // Crypto config
-const CRYPTO_CONFIG = {
+const CRYPTO_CONFIG: Record<string, { address: string; currencies: string[] }> = {
     BSC: {
         address: process.env.CRYPTO_BSC_ADDRESS || '0x...',
         currencies: ['USDT', 'BNB'],
