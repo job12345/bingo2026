@@ -7,9 +7,10 @@ export class DepositRequestDto {
   @Min(1)
   amount: number;
 
-  @ApiProperty({ description: 'URL สลิปการโอนเงิน' })
+  @ApiPropertyOptional({ description: 'URL สลิปการโอนเงิน (Optional - Admin สามารถ verify ได้)' })
   @IsString()
-  paymentSlipUrl: string;
+  @IsOptional()
+  paymentSlipUrl?: string;
 
   @ApiPropertyOptional({ description: 'หมายเหตุ' })
   @IsString()

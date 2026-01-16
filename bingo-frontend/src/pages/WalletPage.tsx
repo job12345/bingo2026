@@ -79,7 +79,7 @@ export default function WalletPage() {
       setActionLoading(true);
       await apiClient.post('/wallet/deposit', {
         amount: values.amount,
-        method: 'promptpay',
+        notes: 'ผ่าน Web App',
       });
       message.success('สร้างคำขอฝากเงินสำเร็จ!');
       depositForm.resetFields();
@@ -258,7 +258,7 @@ export default function WalletPage() {
               <InputNumber
                 size="large"
                 min={100}
-                max={user?.balance || 0}
+                max={user?.pointBalance || 0}
                 style={{ width: '100%' }}
                 placeholder="เช่น 500"
                 formatter={(value) => `฿ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
@@ -346,7 +346,7 @@ export default function WalletPage() {
                 <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 16 }}>ยอดเงินคงเหลือ</Text>
                 <div style={{ marginTop: 8 }}>
                   <Title level={1} style={{ margin: 0, color: '#fbbf24', fontSize: 48 }}>
-                    ฿{(user?.balance || 0).toLocaleString()}
+                    ฿{(user?.pointBalance || 0).toLocaleString()}
                   </Title>
                 </div>
               </div>
