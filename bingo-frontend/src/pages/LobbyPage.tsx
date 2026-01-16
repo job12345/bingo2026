@@ -148,7 +148,7 @@ export default function LobbyPage() {
                     <UserOutlined style={{ fontSize: 24, color: '#3b82f6' }} />
                   </div>
                   <div>
-                    <div style={{ fontSize: 28, fontWeight: 700, color: '#3b82f6' }}>{rooms.reduce((sum, r) => sum + r.currentPlayers, 0)}</div>
+                    <div style={{ fontSize: 28, fontWeight: 700, color: '#3b82f6' }}>{rooms.reduce((sum, r) => sum + (r.currentPlayers || 0), 0)}</div>
                     <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)' }}>ผู้เล่นออนไลน์</div>
                   </div>
                 </div>
@@ -161,7 +161,7 @@ export default function LobbyPage() {
                     <TrophyOutlined style={{ fontSize: 24, color: '#fbbf24' }} />
                   </div>
                   <div>
-                    <div style={{ fontSize: 28, fontWeight: 700, color: '#fbbf24' }}>฿{rooms.reduce((sum, r) => sum + r.totalPotCollected, 0).toLocaleString()}</div>
+                    <div style={{ fontSize: 28, fontWeight: 700, color: '#fbbf24' }}>฿{rooms.reduce((sum, r) => sum + (r.totalPotCollected || 0), 0).toLocaleString()}</div>
                     <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)' }}>รางวัลรวม</div>
                   </div>
                 </div>
