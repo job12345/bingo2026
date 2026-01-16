@@ -17,12 +17,11 @@ import { Server, Socket } from 'socket.io';
   },
 })
 export class WebsocketGateway
-  implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect
-{
+  implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
   constructor(
     private readonly jwtService: JwtService,
     private readonly prisma: PrismaService,
-  ) {}
+  ) { }
 
   @WebSocketServer()
   server: Server;
@@ -154,6 +153,26 @@ export class WebsocketGateway
       displayName: user.displayName,
       avatarUrl: user.avatarUrl || undefined,
       content,
+      timestamp: new Date().toISOString(),
+    });
+  }
+
+  @SubscribeMessage('manual_draw')
+  async handleManualDraw(
+    client: Socket,
+    payload: { gameId: string; number?: number },
+  ) {
+    const user = client.data.user as { id: string } | undefined;
+    if (!user) {
+      client.emit('error', { message: 'Unauthenticated' });
+      return;
+    }
+
+    // The actual draw logic is in GameService
+    // This event is just for real-time notification
+    // The actual draw is done via REST API /api/game/:gameId/manual-draw
+    client.emit('manual_draw_acknowledged', {
+      gameId: payload.gameId,
       timestamp: new Date().toISOString(),
     });
   }

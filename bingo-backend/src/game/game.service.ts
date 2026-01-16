@@ -18,7 +18,7 @@ export class GameService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly websocketGateway: WebsocketGateway,
-  ) {}
+  ) { }
 
   async joinRoom(userId: string, roomId: string) {
     const room = await this.prisma.room.findUnique({
@@ -457,6 +457,128 @@ export class GameService {
     });
 
     return { isValid: true, rank: 1 };
+  }
+
+  /**
+   * Manual Draw - Host เลือกเลขเอง หรือให้ระบบสุ่มให้
+   * ใช้สำหรับ DrawMode.manual_rotate
+   */
+  async manualDraw(userId: string, gameId: string, numberToDraw?: number) {
+    const game = await this.prisma.game.findUnique({
+      where: { id: gameId },
+      include: { room: true },
+    });
+
+    if (!game) {
+      throw new NotFoundException('ไม่พบเกมนี้');
+    }
+
+    // ตรวจสอบว่าเป็น manual mode
+    if (game.room.drawMode !== 'manual_rotate') {
+      throw new BadRequestException('ห้องนี้เป็นโหมด Auto Draw');
+    }
+
+    // ตรวจสอบ state
+    if (game.state !== GameState.running) {
+      throw new BadRequestException('เกมยังไม่เริ่ม หรือจบแล้ว');
+    }
+
+    // ตรวจสอบว่าเป็น Host (creator) หรือ Admin
+    const isHost = game.room.creatorId === userId;
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { role: true },
+    });
+
+    if (!isHost && user?.role !== 'admin') {
+      throw new ForbiddenException('เฉพาะ Host หรือ Admin เท่านั้นที่สามารถจับเลขได้');
+    }
+
+    const maxBall = game.room.ballSet === 'BALL_90' ? 90 : 75;
+    const drawnSet = new Set(game.drawnNumbers);
+
+    // ถ้าจับหมดแล้ว
+    if (drawnSet.size >= maxBall) {
+      throw new BadRequestException('จับเลขครบหมดแล้ว');
+    }
+
+    let nextNumber: number;
+
+    if (numberToDraw !== undefined) {
+      // Host เลือกเลขเอง
+      if (numberToDraw < 1 || numberToDraw > maxBall) {
+        throw new BadRequestException(`เลขต้องอยู่ระหว่าง 1-${maxBall}`);
+      }
+      if (drawnSet.has(numberToDraw)) {
+        throw new BadRequestException(`เลข ${numberToDraw} ถูกจับไปแล้ว`);
+      }
+      nextNumber = numberToDraw;
+    } else {
+      // ให้ระบบสุ่มให้
+      nextNumber = this.pickNextBall(drawnSet, maxBall);
+    }
+
+    // อัพเดทเกม
+    const updated = await this.prisma.game.update({
+      where: { id: gameId },
+      data: {
+        drawnNumbers: { push: nextNumber },
+        currentBall: nextNumber,
+        totalBallsDrawn: { increment: 1 },
+      },
+      select: {
+        roomId: true,
+        drawnNumbers: true,
+        totalBallsDrawn: true,
+      },
+    });
+
+    // Broadcast ให้ทุกคนในห้อง
+    this.websocketGateway.broadcastToRoom(updated.roomId, 'number_drawn', {
+      number: nextNumber,
+      totalDrawn: updated.totalBallsDrawn,
+      drawnNumbers: updated.drawnNumbers,
+      timestamp: new Date().toISOString(),
+      drawnBy: userId,
+      isManual: true,
+    });
+
+    return {
+      number: nextNumber,
+      totalDrawn: updated.totalBallsDrawn,
+      drawnNumbers: updated.drawnNumbers,
+    };
+  }
+
+  /**
+   * Get available numbers for manual draw
+   */
+  async getAvailableNumbers(gameId: string) {
+    const game = await this.prisma.game.findUnique({
+      where: { id: gameId },
+      include: { room: { select: { ballSet: true } } },
+    });
+
+    if (!game) {
+      throw new NotFoundException('ไม่พบเกมนี้');
+    }
+
+    const maxBall = game.room.ballSet === 'BALL_90' ? 90 : 75;
+    const drawnSet = new Set(game.drawnNumbers);
+    const available: number[] = [];
+
+    for (let i = 1; i <= maxBall; i++) {
+      if (!drawnSet.has(i)) {
+        available.push(i);
+      }
+    }
+
+    return {
+      available,
+      drawn: game.drawnNumbers,
+      currentBall: game.currentBall,
+      totalRemaining: available.length,
+    };
   }
 
   private async tryStartRunning(gameId: string) {

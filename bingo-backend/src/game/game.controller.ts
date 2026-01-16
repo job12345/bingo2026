@@ -9,7 +9,7 @@ import { ClaimBingoDto } from './dto/claim-bingo.dto';
 @ApiBearerAuth()
 @Controller('game')
 export class GameController {
-  constructor(private readonly gameService: GameService) {}
+  constructor(private readonly gameService: GameService) { }
 
   @Post(':roomId/join')
   async joinRoom(@CurrentUser('id') userId: string, @Param('roomId') roomId: string) {
@@ -42,5 +42,25 @@ export class GameController {
   @Get(':gameId/cards')
   async getMyCards(@CurrentUser('id') userId: string, @Param('gameId') gameId: string) {
     return this.gameService.getMyCards(userId, gameId);
+  }
+
+  /**
+   * Manual Draw - Host จับเลขเอง
+   */
+  @Post(':gameId/manual-draw')
+  async manualDraw(
+    @CurrentUser('id') userId: string,
+    @Param('gameId') gameId: string,
+    @Body() dto: { number?: number },
+  ) {
+    return this.gameService.manualDraw(userId, gameId, dto.number);
+  }
+
+  /**
+   * Get available numbers สำหรับ manual draw
+   */
+  @Get(':gameId/available-numbers')
+  async getAvailableNumbers(@Param('gameId') gameId: string) {
+    return this.gameService.getAvailableNumbers(gameId);
   }
 }
