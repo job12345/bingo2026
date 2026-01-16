@@ -18,6 +18,7 @@ import { HealthModule } from './health/health.module';
 import { LeaderboardModule } from './leaderboard/leaderboard.module';
 import { ReferralModule } from './referral/referral.module';
 import { TournamentModule } from './tournament/tournament.module';
+import { PayoutModule } from './payout/payout.module';
 
 @Module({
   imports: [
@@ -63,6 +64,7 @@ import { TournamentModule } from './tournament/tournament.module';
     LeaderboardModule,
     ReferralModule,
     TournamentModule,
+    PayoutModule,
   ],
   providers: [
     {
