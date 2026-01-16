@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   Typography,
   Card,
@@ -40,63 +40,79 @@ interface Transaction {
  * Wallet Page - Clean and Simple Version
  */
 export default function WalletPage() {
-  const { user, fetchCurrentUser } = useAuthStore();
+  const { user } = useAuthStore();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState(false);
   const [depositForm] = Form.useForm();
   const [withdrawForm] = Form.useForm();
 
-  // Fetch data on mount
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  const loadData = async () => {
-    setLoading(true);
+  // Load transactions only
+  const loadTransactions = useCallback(async () => {
     try {
-      await fetchCurrentUser();
       const response = await apiClient.get<any>('/wallet/transactions');
       const list = response?.transactions || response?.data || response?.items || [];
       setTransactions(Array.isArray(list) ? list : []);
     } catch (error: any) {
-      console.error('Failed to load wallet data:', error);
-      // Don't show error message, just set empty data
+      console.error('Failed to load transactions:', error);
+      // Silent fail - just show empty list
       setTransactions([]);
-    } finally {
-      setLoading(false);
     }
-  };
+  }, []);
+
+  // Initial load
+  useEffect(() => {
+    const load = async () => {
+      setLoading(true);
+      try {
+        await loadTransactions();
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
+  }, [loadTransactions]);
 
   // Handle Deposit
   const handleDeposit = async (values: { amount: number }) => {
     try {
-      setLoading(true);
+      setActionLoading(true);
       await apiClient.post('/wallet/deposit', {
         amount: values.amount,
         method: 'promptpay',
       });
       message.success('สร้างคำขอฝากเงินสำเร็จ!');
       depositForm.resetFields();
-      loadData();
+      await loadTransactions();
     } catch (error: any) {
       message.error(error?.response?.data?.message || 'ไม่สามารถฝากเงินได้');
     } finally {
-      setLoading(false);
+      setActionLoading(false);
     }
   };
 
   // Handle Withdraw
   const handleWithdraw = async (values: { amount: number }) => {
     try {
-      setLoading(true);
+      setActionLoading(true);
       await apiClient.post('/wallet/withdraw', {
         amount: values.amount,
       });
       message.success('สร้างคำขอถอนเงินสำเร็จ!');
       withdrawForm.resetFields();
-      loadData();
+      await loadTransactions();
     } catch (error: any) {
       message.error(error?.response?.data?.message || 'ไม่สามารถถอนเงินได้');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // Refresh handler
+  const handleRefresh = async () => {
+    setLoading(true);
+    try {
+      await loadTransactions();
     } finally {
       setLoading(false);
     }
@@ -203,7 +219,7 @@ export default function WalletPage() {
               type="primary"
               htmlType="submit"
               size="large"
-              loading={loading}
+              loading={actionLoading}
               block
               style={{
                 background: 'linear-gradient(135deg, #22c55e, #15803d)',
@@ -252,13 +268,10 @@ export default function WalletPage() {
               type="primary"
               htmlType="submit"
               size="large"
-              loading={loading}
+              loading={actionLoading}
               block
               danger
-              style={{
-                height: 50,
-                fontWeight: 600,
-              }}
+              style={{ height: 50, fontWeight: 600 }}
             >
               ถอนเงิน
             </Button>
@@ -279,7 +292,7 @@ export default function WalletPage() {
             <Title level={4} style={{ color: '#fff', margin: 0 }}>
               📋 ประวัติธุรกรรม
             </Title>
-            <Button icon={<ReloadOutlined />} onClick={loadData} loading={loading}>
+            <Button icon={<ReloadOutlined />} onClick={handleRefresh} loading={loading}>
               รีเฟรช
             </Button>
           </div>
@@ -298,6 +311,15 @@ export default function WalletPage() {
       ),
     },
   ];
+
+  // Calculate summary from transactions
+  const totalDeposit = transactions
+    .filter((t) => t.type === 'deposit' && t.status === 'completed')
+    .reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+
+  const totalWithdraw = transactions
+    .filter((t) => t.type === 'withdraw' && t.status === 'completed')
+    .reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
 
   return (
     <Layout>
@@ -323,13 +345,9 @@ export default function WalletPage() {
               <div style={{ textAlign: 'center', padding: '24px 0' }}>
                 <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 16 }}>ยอดเงินคงเหลือ</Text>
                 <div style={{ marginTop: 8 }}>
-                  {loading ? (
-                    <Spin size="large" />
-                  ) : (
-                    <Title level={1} style={{ margin: 0, color: '#fbbf24', fontSize: 48 }}>
-                      ฿{(user?.balance || 0).toLocaleString()}
-                    </Title>
-                  )}
+                  <Title level={1} style={{ margin: 0, color: '#fbbf24', fontSize: 48 }}>
+                    ฿{(user?.balance || 0).toLocaleString()}
+                  </Title>
                 </div>
               </div>
             </Card>
@@ -341,10 +359,7 @@ export default function WalletPage() {
                   <div style={{ textAlign: 'center', padding: '16px 0' }}>
                     <Text style={{ color: 'rgba(255,255,255,0.6)' }}>ฝากทั้งหมด</Text>
                     <div style={{ fontSize: 24, fontWeight: 700, color: '#22c55e', marginTop: 8 }}>
-                      ฿{transactions
-                        .filter((t) => t.type === 'deposit' && t.status === 'completed')
-                        .reduce((sum, t) => sum + (Number(t.amount) || 0), 0)
-                        .toLocaleString()}
+                      ฿{totalDeposit.toLocaleString()}
                     </div>
                   </div>
                 </Col>
@@ -352,10 +367,7 @@ export default function WalletPage() {
                   <div style={{ textAlign: 'center', padding: '16px 0' }}>
                     <Text style={{ color: 'rgba(255,255,255,0.6)' }}>ถอนทั้งหมด</Text>
                     <div style={{ fontSize: 24, fontWeight: 700, color: '#ef4444', marginTop: 8 }}>
-                      ฿{transactions
-                        .filter((t) => t.type === 'withdraw' && t.status === 'completed')
-                        .reduce((sum, t) => sum + (Number(t.amount) || 0), 0)
-                        .toLocaleString()}
+                      ฿{totalWithdraw.toLocaleString()}
                     </div>
                   </div>
                 </Col>
