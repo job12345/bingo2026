@@ -186,7 +186,7 @@ ${data.description}
     `.trim();
 
         try {
-            await this.telegram.sendMessage(message);
+            await this.telegram.sendMessage(null, message);
         } catch (error) {
             console.error('Failed to send Telegram alert:', error);
         }
